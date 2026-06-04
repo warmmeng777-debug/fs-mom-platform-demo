@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>库位管理 · MES智能制程</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+SC:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f6f8;--sf:#fff;--sf2:#f9fafb;--bd:#e4e7ec;--bdl:#f0f2f5;
+  --t1:#1a1f2e;--t2:#5a6478;--t3:#9aa3b5;
+  --ac:#1a5cff;--acl:#e8eeff;--ach:#1447e6;
+  --ok:#12a150;--okl:#e6f7ee;
+  --wn:#d97706;--wnl:#fef3e2;
+  --er:#dc2626;--erl:#fee2e2;
+  --in:#0891b2;--inl:#e0f5fa;
+  --ne:#64748b;--nel:#f1f5f9;
+  --pu:#7c3aed;--pul:#ede9fe;
+  --hh:52px;
+  --s1:0 1px 3px rgba(0,0,0,.06);--sm:0 4px 12px rgba(0,0,0,.08);--sl:0 12px 32px rgba(0,0,0,.14);
+  --r:8px;--rs:5px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans SC',system-ui,sans-serif;font-size:13px;color:var(--t1);background:var(--bg);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* Nav */
+.nav{height:var(--hh);background:var(--sf);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 20px;flex-shrink:0;box-shadow:var(--s1);z-index:100}
+.logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:var(--t1);text-decoration:none;padding-right:20px;border-right:1px solid var(--bd);margin-right:16px}
+.logo-icon{width:28px;height:28px;background:var(--ac);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700}
+.bc{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--t3);flex:1}
+.bc span{color:var(--t2)}.bc .cur{color:var(--t1);font-weight:500}.bc .sep{color:var(--bd)}
+.ava{width:30px;height:30px;border-radius:50%;background:var(--acl);color:var(--ac);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;cursor:pointer;margin-left:auto}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* Stats */
+.stats{display:flex;background:var(--sf);border-bottom:1px solid var(--bd);padding:0 20px;flex-shrink:0;overflow-x:auto}
+.sit{padding:10px 20px 10px 0;margin-right:20px;display:flex;align-items:center;gap:8px;flex-shrink:0;border-right:1px solid var(--bdl)}
+.sit:last-child{border-right:none}
+.sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.snum{font-size:18px;font-weight:600;font-family:'IBM Plex Mono',monospace}
+.slbl{font-size:11px;color:var(--t3);white-space:nowrap}
+
+/* Toolbar */
+.tb{background:var(--sf);border-bottom:1px solid var(--bd);padding:10px 20px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+.tbl{display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap}
+.tbr{display:flex;align-items:center;gap:8px}
+.fl{display:flex;align-items:center;gap:5px}
+.fll{font-size:12px;color:var(--t3);white-space:nowrap}
+select.fs{height:30px;border:1px solid var(--bd);border-radius:var(--rs);padding:0 22px 0 8px;font-size:12px;font-family:inherit;color:var(--t1);appearance:none;background:var(--sf) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239aa3b5'/%3E%3C/svg%3E") no-repeat right 7px center;outline:none;cursor:pointer;transition:border-color .15s}
+select.fs:focus{border-color:var(--ac)}
+.srch{position:relative;display:flex;align-items:center}
+.srch input{height:30px;width:160px;border:1px solid var(--bd);border-radius:var(--rs);padding:0 8px 0 28px;font-size:12px;font-family:inherit;color:var(--t1);outline:none;transition:border-color .15s,width .2s}
+.srch input:focus{border-color:var(--ac);width:200px}
+.srch input::placeholder{color:var(--t3)}
+.srch .si{position:absolute;left:8px;color:var(--t3);pointer-events:none}
+.dv{width:1px;height:18px;background:var(--bd);margin:0 2px}
+
+/* Buttons */
+.btn{height:30px;padding:0 12px;border-radius:var(--rs);border:none;font-size:12px;font-family:inherit;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap}
+.btn svg{width:12px;height:12px}
+.bp{background:var(--ac);color:#fff}.bp:hover{background:var(--ach)}
+.bok{background:var(--ok);color:#fff}.bok:hover{opacity:.9}
+.bw{background:var(--wn);color:#fff}.bw:hover{opacity:.9}
+.ber{background:var(--er);color:#fff}.ber:hover{opacity:.9}
+.bdf{background:var(--sf);color:var(--t2);border:1px solid var(--bd)}.bdf:hover{border-color:var(--ac);color:var(--ac);background:var(--acl)}
+.bdanger{background:var(--sf);color:var(--er);border:1px solid var(--bd)}.bdanger:hover{border-color:var(--er);background:var(--erl)}
+.bsm{height:26px;padding:0 9px;font-size:11px}
+
+/* Sel bar */
+.selbar{display:none;align-items:center;gap:8px;background:var(--acl);border-bottom:1px solid #c7d8ff;padding:7px 20px;font-size:12px;color:var(--ac);font-weight:500;flex-shrink:0}
+.selbar.on{display:flex}
+
+/* Table */
+.twp{flex:1;overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{position:sticky;top:0;background:var(--sf2);border-bottom:1px solid var(--bd);padding:9px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;z-index:10;user-select:none}
+thead th.sort{cursor:pointer}
+thead th.sort:hover{color:var(--t1)}
+tbody tr{border-bottom:1px solid var(--bdl);transition:background .1s}
+tbody tr:hover{background:var(--sf2)}
+tbody tr.sel-row{background:#f0f4ff}
+tbody td{padding:9px 12px;color:var(--t1);white-space:nowrap;vertical-align:middle}
+.cbc{width:34px}
+input[type=checkbox]{width:14px;height:14px;accent-color:var(--ac);cursor:pointer}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t2);font-weight:500}
+
+/* Status */
+.stag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:500;white-space:nowrap}
+.stag::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.s-free{background:#ecfdf5;color:#059669}.s-free::before{background:#059669}
+.s-busy{background:var(--inl);color:var(--in)}.s-busy::before{background:var(--in)}
+.s-dis{background:var(--nel);color:var(--ne)}.s-dis::before{background:var(--ne)}
+
+.mt{display:inline-flex;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:500;background:var(--sf2);color:var(--t2);border:1px solid var(--bd)}
+.mt.y{background:var(--okl);color:var(--ok);border-color:transparent}
+.mt.n{background:var(--sf2);color:var(--t3);border-color:var(--bd)}
+.mt.agv{background:var(--pul);color:var(--pu);border-color:transparent}
+.mt.za{background:var(--acl);color:var(--ac);border-color:transparent}
+.mt.zb{background:var(--wnl);color:var(--wn);border-color:transparent}
+.mt.zc{background:#fdf4ff;color:#a21caf;border-color:transparent}
+.acts{display:flex;align-items:center;gap:4px}
+
+/* Footer */
+.foot{background:var(--sf);border-top:1px solid var(--bd);padding:8px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.pgi{font-size:12px;color:var(--t3)}
+.pg{display:flex;align-items:center;gap:4px}
+.pb{width:28px;height:28px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--sf);color:var(--t2);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s}
+.pb:hover{border-color:var(--ac);color:var(--ac)}
+.pb.active{background:var(--ac);color:#fff;border-color:var(--ac)}
+
+/* ── Modal base ── */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;align-items:center;justify-content:center;animation:fi .15s ease}
+.ov.on{display:flex}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.modal{background:var(--sf);border-radius:var(--r);box-shadow:var(--sl);width:520px;max-width:calc(100vw - 32px);max-height:90vh;display:flex;flex-direction:column;animation:su .18s ease}
+.modal.sm{width:420px}
+@keyframes su{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mh{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.mt2{font-size:14px;font-weight:600;color:var(--t1);display:flex;align-items:center;gap:8px}
+.mic{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.mic-add{background:var(--acl)}.mic-edit{background:var(--wnl)}.mic-del{background:var(--erl)}
+.mic-imp{background:var(--okl)}.mic-exp{background:var(--inl)}.mic-tog{background:var(--nel)}
+.mcls{width:28px;height:28px;border:none;background:none;color:var(--t3);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:4px;transition:background .12s;line-height:1}
+.mcls:hover{background:var(--sf2);color:var(--t1)}
+.mb{padding:18px 20px;overflow-y:auto;flex:1}
+.mf{padding:12px 20px;border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-shrink:0}
+
+/* Form grid */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
+.fg1{grid-template-columns:1fr}
+.fg3{grid-template-columns:1fr 1fr 1fr}
+.ff{display:flex;flex-direction:column;gap:0}
+.fsec{font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;padding-bottom:8px;border-bottom:1px solid var(--bdl);margin-bottom:14px;margin-top:6px}
+.fsec:first-child{margin-top:0}
+.flbl{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:5px;display:block}
+.flbl .req{color:var(--er);margin-left:2px}
+.finp{width:100%;height:34px;border:1.5px solid var(--bd);border-radius:var(--rs);padding:0 10px;font-size:12px;font-family:inherit;color:var(--t1);outline:none;transition:border-color .15s;background:var(--sf)}
+.finp:focus{border-color:var(--ac)}
+select.finp{appearance:none;background:var(--sf) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239aa3b5'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;padding-right:26px}
+.fhint{font-size:11px;color:var(--t3);margin-top:4px;line-height:1.5}
+.form-gap{height:14px}
+
+/* Toggle row */
+.trow{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--sf2);border-radius:var(--rs);border:1px solid var(--bdl);margin-bottom:12px}
+.trow-lbl{font-size:12px;color:var(--t2)}
+.toggle{width:36px;height:20px;background:var(--bd);border-radius:10px;position:relative;cursor:pointer;transition:background .2s;border:none;flex-shrink:0}
+.toggle.on{background:var(--ac)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on::after{transform:translateX(16px)}
+
+/* Alert */
+.al{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:var(--rs);font-size:12px;line-height:1.6}
+.al svg{flex-shrink:0;margin-top:1px}
+.al.er{background:var(--erl);color:var(--er);border:1px solid #fecaca}
+.al.wn{background:var(--wnl);color:var(--wn);border:1px solid #fde68a}
+.al.ok{background:var(--okl);color:var(--ok);border:1px solid #a7f3d0}
+.al.in{background:var(--inl);color:var(--in);border:1px solid #bae6fd}
+.al.pu{background:var(--pul);color:var(--pu);border:1px solid #ddd6fe}
+
+/* Import drop zone */
+.dropzone{border:2px dashed var(--bd);border-radius:var(--r);padding:36px 20px;text-align:center;cursor:pointer;transition:all .15s;background:var(--sf2)}
+.dropzone:hover{border-color:var(--ac);background:var(--acl)}
+.dz-icon{font-size:36px;margin-bottom:8px}
+.dz-title{font-size:13px;font-weight:500;color:var(--t2);margin-bottom:4px}
+.dz-sub{font-size:11px;color:var(--t3)}
+
+/* Export preview */
+.exp-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bdl)}
+.exp-row:last-child{border-bottom:none}
+.exp-key{font-size:12px;color:var(--t3)}
+.exp-val{font-size:12px;color:var(--t1);font-weight:500}
+
+/* Info card in del/toggle modal */
+.info-card{background:var(--sf2);border:1px solid var(--bdl);border-radius:var(--rs);padding:12px;margin-bottom:14px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ii{display:flex;flex-direction:column;gap:3px}
+.il{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px}
+.iv{font-size:12px;color:var(--t1);font-weight:500}
+
+/* Toast */
+.tw{position:fixed;top:20px;right:20px;z-index:3000;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--t1);color:#fff;padding:10px 16px;border-radius:var(--rs);font-size:12px;box-shadow:var(--sm);display:flex;align-items:center;gap:8px;animation:tin .2s ease;min-width:220px;pointer-events:all}
+.toast.ok{background:var(--ok)}.toast.wn{background:var(--wn)}.toast.er{background:var(--er)}
+@keyframes tin{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes tout{from{opacity:1}to{opacity:0;transform:translateX(30px)}}
+
+@media(max-width:768px){
+  .tb{flex-direction:column;align-items:flex-start;padding:8px 12px}
+  .tbl,.tbr{width:100%}.srch input{width:100%!important}.srch{flex:1}
+  thead th:nth-child(n+8){display:none} tbody td:nth-child(n+8){display:none}
+}
+</style>
+</head>
+<body>
+<div class="tw" id="tw"></div>
+
+<!-- ═══════ 新增 / 编辑 Modal ═══════ -->
+<div class="ov" id="formM">
+  <div class="modal">
+    <div class="mh">
+      <div class="mt2" id="formTitle"><div class="mic mic-add">📦</div>新增库位</div>
+      <button class="mcls" onclick="cm('formM')">×</button>
+    </div>
+    <div class="mb">
+      <div class="fsec">基本信息</div>
+      <div class="fg" style="margin-bottom:14px">
+        <div class="ff">
+          <label class="flbl">库别<span class="req">*</span></label>
+          <select class="finp" id="fKubie" onchange="onKubieChange()">
+            <option value="">请选择</option>
+            <option>货淋室</option>
+            <option>F7-1线边仓</option>
+            <option>1F测试仓</option>
+          </select>
+        </div>
+        <div class="ff">
+          <label class="flbl">库区<span class="req">*</span></label>
+          <select class="finp" id="fKuqu"><option value="">请先选择库别</option></select>
+        </div>
+        <div class="ff">
+          <label class="flbl">库位编号<span class="req">*</span></label>
+          <input class="finp" id="fCode" type="text" placeholder="如 A-01">
+          <div class="fhint">编号在同一库别下唯一</div>
+        </div>
+        <div class="ff">
+          <label class="flbl">容量（框）</label>
+          <input class="finp" id="fCap" type="number" min="1" placeholder="最大框数">
+        </div>
+        <div class="ff">
+          <label class="flbl">状态<span class="req">*</span></label>
+          <select class="finp" id="fStatus">
+            <option>空闲</option><option>占用</option><option>禁用</option>
+          </select>
+        </div>
+        <div class="ff">
+          <label class="flbl">备注</label>
+          <input class="finp" id="fRemark" type="text" placeholder="选填">
+        </div>
+      </div>
+      <div class="fsec">接驳配置</div>
+      <div class="trow">
+        <span class="trow-lbl">是否接驳位（AGV 停靠点）</span>
+        <button class="toggle" id="agvToggle" onclick="toggleAgv()"></button>
+      </div>
+      <div id="agvExtra" style="display:none">
+        <div class="fg">
+          <div class="ff">
+            <label class="flbl">接驳点位编号<span class="req">*</span></label>
+            <input class="finp" id="fAgvCode" type="text" placeholder="如 s-001">
+          </div>
+          <div class="ff">
+            <label class="flbl">AGV 设备编号</label>
+            <input class="finp" id="fAgvDev" type="text" placeholder="如 AGV-001">
+          </div>
+        </div>
+        <div class="al in" style="margin-top:10px">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 4.5v3M7 10v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          <span>设置为接驳位后，AGV 将可自动停靠并进行物料搬运。请确保接驳点位编号与 AGV 调度系统保持一致。</span>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn bdf" onclick="cm('formM')">取消</button>
+      <button class="btn bp" onclick="confirmForm()">
+        <svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5l3 3 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        保存
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ 删除 Modal ═══════ -->
+<div class="ov" id="delM">
+  <div class="modal sm">
+    <div class="mh">
+      <div class="mt2"><div class="mic mic-del">🗑️</div>删除库位</div>
+      <button class="mcls" onclick="cm('delM')">×</button>
+    </div>
+    <div class="mb">
+      <div class="info-card">
+        <div class="info-grid" id="delInfo"></div>
+      </div>
+      <div class="al er">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M5 5l4 4M9 5l-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <span>删除后不可恢复。<strong>状态为「占用」的库位无法删除。</strong>如需删除，请先完成出库操作。</span>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn bdf" onclick="cm('delM')">取消</button>
+      <button class="btn ber" onclick="confirmDel()">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ 批量删除 Modal ═══════ -->
+<div class="ov" id="bdelM">
+  <div class="modal sm">
+    <div class="mh">
+      <div class="mt2"><div class="mic mic-del">🗑️</div>批量删除</div>
+      <button class="mcls" onclick="cm('bdelM')">×</button>
+    </div>
+    <div class="mb">
+      <div class="al wn" style="margin-bottom:10px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2L1 12h12L7 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M7 6v3M7 10.5v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <span>已选 <strong id="bdelCnt">0</strong> 条库位，状态为「<strong>占用</strong>」的记录将自动跳过。</span>
+      </div>
+      <div class="al er">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M5 5l4 4M9 5l-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <span>删除操作<strong>不可撤销</strong>，请谨慎操作。</span>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn bdf" onclick="cm('bdelM')">取消</button>
+      <button class="btn ber" onclick="confirmBatchDel()">确认批量删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ 启用/禁用 Modal ═══════ -->
+<div class="ov" id="togM">
+  <div class="modal sm">
+    <div class="mh">
+      <div class="mt2" id="togTitle"><div class="mic mic-tog">⚙️</div>操作确认</div>
+      <button class="mcls" onclick="cm('togM')">×</button>
+    </div>
+    <div class="mb">
+      <div class="info-card" id="togInfo"></div>
+      <div class="al" id="togAlert">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2L1 12h12L7 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M7 6v3M7 10.5v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <span id="togMsg"></span>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn bdf" onclick="cm('togM')">取消</button>
+      <button class="btn" id="togBtn" onclick="confirmToggle()">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ 批量启用/禁用 Modal ═══════ -->
+<div class="ov" id="btogM">
+  <div class="modal sm">
+    <div class="mh">
+      <div class="mt2" id="btogTitle"><div class="mic mic-tog">⚙️</div>批量操作</div>
+      <button class="mcls" onclick="cm('btogM')">×</button>
+    </div>
+    <div class="mb">
+      <div class="al" id="btogAlert">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2L1 12h12L7 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M7 6v3M7 10.5v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <span id="btogMsg"></span>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn bdf" onclick="cm('btogM')">取消</button>
+      <button class="btn" id="btogBtn" onclick="confirmBatchToggle()">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ 导入 Modal ═══════ -->
+<div class="ov" id="impM">
+  <div class="modal">
+    <div class="mh">
+      <div class="mt2"><div class="mic mic-imp">📂</div>批量导入库位</div>
+      <button class="mcls" onclick="cm('impM')">×</button>
+    </div>
+    <div class="mb">
+      <div class="dropzone" id="dropzone" onclick="fakeSelectFile()">
+        <div class="dz-icon" id="dzIcon">📄</div>
+        <div class="dz-title" id="dzTitle">点击选择文件，或将 Excel 拖拽至此</div>
+        <div class="dz-sub" id="dzSub">支持 .xlsx / .xls，单次最多 500 条库位</div>
+      </div>
+      <div class="al in" style="margin-bottom:10px;margin-top:14px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 4.5v3M7 10v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <span>请按模板格式填写：库别、库区、库位编号、容量（框）、状态、是否接驳位、接驳点位。
+          <span style="color:var(--ac);text-decoration:underline;cursor:pointer" onclick="showToast('模板下载中…')">下载导入模板</span>
+        </span>
+      </div>
+      <div class="al wn">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2L1 12h12L7 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M7 6v3M7 10.5v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <span>库位编号在同一库别内不可重复，重复记录将<strong>覆盖更新</strong>已有数据。</span>
+      </div>
+      <!-- 预览区 -->
+      <div id="impPreview" style="display:none;margin-top:14px">
+        <div class="al ok" style="margin-bottom:10px">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M4 7l2.5 2.5L10 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>已解析文件 <strong id="impFileName"></strong>，共 <strong id="impTotal">0</strong> 条，其中新增 <strong id="impNew">0</strong> 条，更新 <strong id="impUpd">0</strong> 条，错误 <span style="color:var(--er)" id="impErr">0</span> 条。</span>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn bdf" onclick="cm('impM')">取消</button>
+      <button class="btn bdf" onclick="fakeSelectFile()" id="reselectBtn">重新选择</button>
+      <button class="btn bok" id="impConfirmBtn" onclick="confirmImport()">
+        <svg viewBox="0 0 12 12" fill="none"><path d="M6 1v7M2 8l4 3 4-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        开始导入
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ 导出 Modal ═══════ -->
+<div class="ov" id="expM">
+  <div class="modal sm">
+    <div class="mh">
+      <div class="mt2"><div class="mic mic-exp">📊</div>导出库位数据</div>
+      <button class="mcls" onclick="cm('expM')">×</button>
+    </div>
+    <div class="mb">
+      <div class="fsec">导出范围</div>
+      <div class="fg" style="margin-bottom:16px">
+        <div class="ff">
+          <label class="flbl">库别</label>
+          <select class="finp" id="expKubie">
+            <option value="">全部库别</option>
+            <option>货淋室</option><option>F7-1线边仓</option><option>1F测试仓</option>
+          </select>
+        </div>
+        <div class="ff">
+          <label class="flbl">状态</label>
+          <select class="finp" id="expStatus">
+            <option value="">全部状态</option>
+            <option>空闲</option><option>占用</option><option>禁用</option>
+          </select>
+        </div>
+      </div>
+      <div class="fsec">导出预览</div>
+      <div id="expPreview"></div>
+      <div class="al in" style="margin-top:14px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 4.5v3M7 10v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <span>导出格式：Excel (.xlsx)，包含全部字段。</span>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn bdf" onclick="cm('expM')">取消</button>
+      <button class="btn bp" onclick="confirmExport()">
+        <svg viewBox="0 0 12 12" fill="none"><path d="M6 11V4M2 4l4-3 4 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        确认导出
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Page ── -->
+<nav class="nav">
+  <a class="logo" href="#"><div class="logo-icon">MES</div>智能制程</a>
+  <div class="bc">
+    <span>生产物料管理</span><span class="sep">›</span>
+    <span>线边仓管理</span><span class="sep">›</span>
+    <span class="cur">库位管理</span>
+  </div>
+  <div class="ava">孟</div>
+</nav>
+
+<main class="main">
+  <!-- Stats -->
+  <div class="stats">
+    <div class="sit"><div class="sdot" style="background:var(--t3)"></div><div><div class="snum" id="stTotal" style="color:var(--t1)">0</div><div class="slbl">库位总数</div></div></div>
+    <div class="sit"><div class="sdot" style="background:#059669"></div><div><div class="snum" id="stFree" style="color:#059669">0</div><div class="slbl">空闲</div></div></div>
+    <div class="sit"><div class="sdot" style="background:var(--in)"></div><div><div class="snum" id="stBusy" style="color:var(--in)">0</div><div class="slbl">占用</div></div></div>
+    <div class="sit"><div class="sdot" style="background:var(--ne)"></div><div><div class="snum" id="stDis" style="color:var(--ne)">0</div><div class="slbl">禁用</div></div></div>
+    <div class="sit"><div class="sdot" style="background:var(--pu)"></div><div><div class="snum" id="stAgv" style="color:var(--pu)">0</div><div class="slbl">接驳位</div></div></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="tb">
+    <div class="tbl">
+      <button class="btn bp" onclick="openAdd()">
+        <svg viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>新增库位
+      </button>
+      <button class="btn bdf" onclick="om('impM')">
+        <svg viewBox="0 0 12 12" fill="none"><path d="M6 1v7M2 8l4 3 4-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>导入
+      </button>
+      <button class="btn bdf" onclick="openExport()">
+        <svg viewBox="0 0 12 12" fill="none"><path d="M6 11V4M2 4l4-3 4 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>导出
+      </button>
+      <div class="dv"></div>
+      <div class="fl"><span class="fll">库别</span>
+        <select class="fs" id="fKubieF" onchange="applyFilter()">
+          <option value="">全部</option>
+          <option>货淋室</option><option>F7-1线边仓</option><option>1F测试仓</option>
+        </select>
+      </div>
+      <div class="fl"><span class="fll">库区</span>
+        <select class="fs" id="fKuquF" onchange="applyFilter()">
+          <option value="">全部</option>
+          <option>暂存区</option><option>入库区</option><option>存储区</option>
+          <option>出库区</option><option>待测区</option><option>待转区</option>
+        </select>
+      </div>
+      <div class="fl"><span class="fll">状态</span>
+        <select class="fs" id="fStatusF" onchange="applyFilter()">
+          <option value="">全部</option>
+          <option>空闲</option><option>占用</option><option>禁用</option>
+        </select>
+      </div>
+      <div class="fl"><span class="fll">接驳位</span>
+        <select class="fs" id="fAgvF" onchange="applyFilter()">
+          <option value="">全部</option>
+          <option>是</option><option>否</option>
+        </select>
+      </div>
+    </div>
+    <div class="tbr">
+      <div class="srch">
+        <span class="si"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="5.2" cy="5.2" r="3.7" stroke="currentColor" stroke-width="1.3"/><path d="M8.5 8.5l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+        <input type="text" placeholder="库位编号…" id="searchInput" oninput="applyFilter()">
+      </div>
+    </div>
+  </div>
+
+  <!-- Sel bar -->
+  <div class="selbar" id="selbar">
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l3.5 3.5L11 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    已选 <strong id="selCnt">0</strong> 条
+    <button class="btn bsm bok" onclick="openBatchToggle('启用')">批量启用</button>
+    <button class="btn bsm bdf" onclick="openBatchToggle('禁用')">批量禁用</button>
+    <button class="btn bsm bdanger" onclick="openBatchDel()">批量删除</button>
+    <button class="btn bsm bdf" onclick="clearSel()">取消选择</button>
+  </div>
+
+  <!-- Table -->
+  <div class="twp">
+    <table>
+      <thead>
+        <tr>
+          <th class="cbc"><input type="checkbox" id="selAll" onchange="toggleAll(this)"></th>
+          <th class="sort" onclick="sortBy('kubie')">库别</th>
+          <th class="sort" onclick="sortBy('kuqu')">库区</th>
+          <th class="sort" onclick="sortBy('code')">库位</th>
+          <th class="sort" onclick="sortBy('cap')">容量/框</th>
+          <th>状态</th>
+          <th>是否接驳位</th>
+          <th>接驳点位（AGV）</th>
+          <th>备注</th>
+          <th>创建人 / 时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div class="foot">
+    <div class="pgi">共 <strong id="tc">0</strong> 条</div>
+    <div class="pg">
+      <button class="pb">‹</button>
+      <button class="pb active">1</button>
+      <button class="pb">›</button>
+    </div>
+  </div>
+</main>
+
+<script>
+// ── 库区映射 ──
+const KUQU_MAP = {
+  '货淋室':    ['暂存区'],
+  'F7-1线边仓':['入库区','存储区','出库区'],
+  '1F测试仓':  ['待测区','待转区'],
+};
+
+// ── 数据（按图补充）──
+let LOC = [
+  // 货淋室 - 暂存区
+  {id:1, kubie:'货淋室',     kuqu:'暂存区', code:'hls-001', cap:null, status:'空闲', agv:'是', agvCode:'s-001', agvDev:'', remark:'', creator:'孟琼', ctime:'2026-04-01 09:00'},
+  {id:2, kubie:'货淋室',     kuqu:'暂存区', code:'hls-002', cap:null, status:'占用', agv:'是', agvCode:'s-002', agvDev:'', remark:'', creator:'孟琼', ctime:'2026-04-01 09:00'},
+  {id:3, kubie:'货淋室',     kuqu:'暂存区', code:'hls-003', cap:null, status:'禁用', agv:'是', agvCode:'s-003', agvDev:'', remark:'', creator:'孟琼', ctime:'2026-04-01 09:00'},
+  // F7-1线边仓 - 入库区
+  {id:4, kubie:'F7-1线边仓', kuqu:'入库区', code:'1-rk-001', cap:3, status:'空闲', agv:'是', agvCode:'s-004', agvDev:'AGV-001', remark:'', creator:'张伟', ctime:'2026-04-02 10:00'},
+  {id:5, kubie:'F7-1线边仓', kuqu:'入库区', code:'1-rk-002', cap:5, status:'空闲', agv:'是', agvCode:'s-005', agvDev:'AGV-001', remark:'', creator:'张伟', ctime:'2026-04-02 10:00'},
+  // F7-1线边仓 - 存储区
+  {id:6, kubie:'F7-1线边仓', kuqu:'存储区', code:'1-cc-001', cap:3, status:'空闲', agv:'否', agvCode:'', agvDev:'', remark:'', creator:'张伟', ctime:'2026-04-02 10:30'},
+  {id:7, kubie:'F7-1线边仓', kuqu:'存储区', code:'1-cc-002', cap:5, status:'占用', agv:'否', agvCode:'', agvDev:'', remark:'', creator:'张伟', ctime:'2026-04-02 10:30'},
+  // F7-1线边仓 - 出库区
+  {id:8, kubie:'F7-1线边仓', kuqu:'出库区', code:'1-ck-001', cap:3, status:'空闲', agv:'是', agvCode:'s-006', agvDev:'AGV-002', remark:'', creator:'李娜',  ctime:'2026-04-03 09:00'},
+  {id:9, kubie:'F7-1线边仓', kuqu:'出库区', code:'1-ck-002', cap:5, status:'空闲', agv:'是', agvCode:'s-007', agvDev:'AGV-002', remark:'', creator:'李娜',  ctime:'2026-04-03 09:00'},
+  // 1F测试仓 - 待测区
+  {id:10,kubie:'1F测试仓',   kuqu:'待测区', code:'cs-1-001', cap:null, status:'空闲', agv:'是', agvCode:'s-008', agvDev:'AGV-003', remark:'', creator:'王芳', ctime:'2026-04-05 08:00'},
+  {id:11,kubie:'1F测试仓',   kuqu:'待测区', code:'cs-1-002', cap:null, status:'空闲', agv:'是', agvCode:'s-009', agvDev:'AGV-003', remark:'', creator:'王芳', ctime:'2026-04-05 08:00'},
+  {id:12,kubie:'1F测试仓',   kuqu:'待测区', code:'cs-1-003', cap:null, status:'占用', agv:'是', agvCode:'s-010', agvDev:'AGV-003', remark:'', creator:'王芳', ctime:'2026-04-05 08:00'},
+  // 1F测试仓 - 待转区
+  {id:13,kubie:'1F测试仓',   kuqu:'待转区', code:'cs-2-001', cap:null, status:'空闲', agv:'是', agvCode:'s-011', agvDev:'AGV-004', remark:'', creator:'陈刚', ctime:'2026-04-06 14:00'},
+  {id:14,kubie:'1F测试仓',   kuqu:'待转区', code:'cs-2-002', cap:null, status:'空闲', agv:'是', agvCode:'s-012', agvDev:'AGV-004', remark:'', creator:'陈刚', ctime:'2026-04-06 14:00'},
+  {id:15,kubie:'1F测试仓',   kuqu:'待转区', code:'cs-2-003', cap:null, status:'禁用', agv:'是', agvCode:'s-013', agvDev:'AGV-004', remark:'设备检修', creator:'陈刚', ctime:'2026-04-06 14:00'},
+];
+
+let nextId=16, curIdx=null, isEdit=false, delIdx=null, togAction='', agvOn=false, sel=new Set(), sortKey='', sortAsc=true;
+
+// ── 库区联动 ──
+function onKubieChange(){
+  const kb = document.getElementById('fKubie').value;
+  const sel2 = document.getElementById('fKuqu');
+  const opts = KUQU_MAP[kb] || [];
+  sel2.innerHTML = opts.length
+    ? '<option value="">请选择</option>' + opts.map(o=>`<option>${o}</option>`).join('')
+    : '<option value="">请先选择库别</option>';
+}
+
+// ── Render ──
+function renderStats(data){
+  document.getElementById('stTotal').textContent = data.length;
+  document.getElementById('stFree').textContent  = data.filter(r=>r.status==='空闲').length;
+  document.getElementById('stBusy').textContent  = data.filter(r=>r.status==='占用').length;
+  document.getElementById('stDis').textContent   = data.filter(r=>r.status==='禁用').length;
+  document.getElementById('stAgv').textContent   = data.filter(r=>r.agv==='是').length;
+}
+
+function renderTable(data){
+  const tb = document.getElementById('tbody');
+  tb.innerHTML='';
+  document.getElementById('tc').textContent = data.length;
+  renderStats(data);
+  if(!data.length){
+    tb.innerHTML='<tr><td colspan="11" style="text-align:center;padding:50px;color:var(--t3)">暂无数据</td></tr>';
+    return;
+  }
+
+  // 库别颜色
+  const kbCls = {'货淋室':'za','F7-1线边仓':'zb','1F测试仓':'zc'};
+  const kqCls = {'入库区':'za','出库区':'zb','存储区':'','暂存区':'','待测区':'zc','待转区':''};
+
+  data.forEach(r=>{
+    const i = LOC.indexOf(r);
+    const tr = document.createElement('tr');
+    if(sel.has(String(r.id))) tr.classList.add('sel-row');
+    const sc = r.status==='空闲'?'s-free':r.status==='占用'?'s-busy':'s-dis';
+    const acts=`<div class="acts">
+      <button class="btn bsm bdf" onclick="openEdit(${i})">编辑</button>
+      ${r.status==='禁用'
+        ?`<button class="btn bsm bok" onclick="openToggle(${i},'启用')">启用</button>`
+        :`<button class="btn bsm bdf" onclick="openToggle(${i},'禁用')">禁用</button>`}
+      <button class="btn bsm bdanger" onclick="openDel(${i})">删除</button>
+    </div>`;
+    tr.innerHTML=`
+      <td class="cbc"><input type="checkbox" onchange="toggleRow(this,'${r.id}')" ${sel.has(String(r.id))?'checked':''}></td>
+      <td><span class="mt ${kbCls[r.kubie]||''}">${r.kubie}</span></td>
+      <td><span class="mt ${kqCls[r.kuqu]||''}" style="font-size:11px">${r.kuqu}</span></td>
+      <td><span class="mono">${r.code}</span></td>
+      <td class="mono">${r.cap!=null?r.cap+' 框':'<span style="color:var(--t3)">—</span>'}</td>
+      <td><span class="stag ${sc}">${r.status}</span></td>
+      <td><span class="mt ${r.agv==='是'?'agv':'n'}">${r.agv}</span></td>
+      <td style="font-size:11px">${r.agvCode
+        ?`<span class="mono" style="color:var(--pu)">${r.agvCode}</span>${r.agvDev?` <span class="mt" style="font-size:9px">${r.agvDev}</span>`:''}`
+        :'<span style="color:var(--t3)">—</span>'}</td>
+      <td style="font-size:11px;color:var(--t3)">${r.remark||'—'}</td>
+      <td><div style="font-size:11px">${r.creator}</div><div class="mono" style="font-size:10px;color:var(--t3)">${r.ctime}</div></td>
+      <td>${acts}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+// ── Filter & Sort ──
+function applyFilter(){
+  let data=[...LOC];
+  const kb=document.getElementById('fKubieF').value;
+  const kq=document.getElementById('fKuquF').value;
+  const st=document.getElementById('fStatusF').value;
+  const ag=document.getElementById('fAgvF').value;
+  const q=document.getElementById('searchInput').value.trim().toLowerCase();
+  if(kb) data=data.filter(r=>r.kubie===kb);
+  if(kq) data=data.filter(r=>r.kuqu===kq);
+  if(st) data=data.filter(r=>r.status===st);
+  if(ag) data=data.filter(r=>r.agv===ag);
+  if(q)  data=data.filter(r=>r.code.toLowerCase().includes(q)||r.agvCode.toLowerCase().includes(q));
+  if(sortKey){
+    data.sort((a,b)=>{
+      const va=a[sortKey]??'', vb=b[sortKey]??'';
+      const res = typeof va==='number'?va-vb:String(va).localeCompare(String(vb));
+      return sortAsc?res:-res;
+    });
+  }
+  renderTable(data);
+}
+function sortBy(k){
+  if(sortKey===k) sortAsc=!sortAsc; else{sortKey=k;sortAsc=true;}
+  applyFilter();
+}
+
+// ── Checkbox ──
+function toggleAll(cb){
+  document.querySelectorAll('#tbody input[type=checkbox]').forEach(el=>{
+    el.checked=cb.checked;
+    const m=el.getAttribute('onchange').match(/'([^']+)'/);
+    if(m) cb.checked?sel.add(m[1]):sel.delete(m[1]);
+  });
+  updSel();
+}
+function toggleRow(cb,id){ cb.checked?sel.add(String(id)):sel.delete(String(id)); updSel(); }
+function updSel(){
+  document.getElementById('selCnt').textContent=sel.size;
+  document.getElementById('selbar').classList.toggle('on',sel.size>0);
+  document.querySelectorAll('#tbody tr').forEach(tr=>{
+    const cb=tr.querySelector('input[type=checkbox]');
+    if(cb){const m=cb.getAttribute('onchange').match(/'([^']+)'/);if(m)tr.classList.toggle('sel-row',sel.has(m[1]));}
+  });
+}
+function clearSel(){
+  sel.clear();
+  document.querySelectorAll('#tbody input[type=checkbox]').forEach(e=>e.checked=false);
+  document.getElementById('selAll').checked=false;
+  updSel();
+}
+
+// ── AGV toggle ──
+function toggleAgv(){
+  agvOn=!agvOn;
+  document.getElementById('agvToggle').classList.toggle('on',agvOn);
+  document.getElementById('agvExtra').style.display=agvOn?'block':'none';
+}
+function setAgv(on){
+  agvOn=on;
+  document.getElementById('agvToggle').classList.toggle('on',on);
+  document.getElementById('agvExtra').style.display=on?'block':'none';
+}
+
+// ── Add / Edit ──
+function openAdd(){
+  isEdit=false; curIdx=null;
+  document.getElementById('formTitle').innerHTML='<div class="mic mic-add">📦</div>新增库位';
+  ['fCode','fCap','fRemark','fAgvCode','fAgvDev'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fKubie').value='';
+  document.getElementById('fKuqu').innerHTML='<option value="">请先选择库别</option>';
+  document.getElementById('fStatus').value='空闲';
+  setAgv(false);
+  om('formM');
+}
+function openEdit(i){
+  isEdit=true; curIdx=i;
+  const r=LOC[i];
+  document.getElementById('formTitle').innerHTML='<div class="mic mic-edit">✏️</div>编辑库位';
+  document.getElementById('fKubie').value=r.kubie; onKubieChange();
+  document.getElementById('fKuqu').value=r.kuqu;
+  document.getElementById('fCode').value=r.code;
+  document.getElementById('fCap').value=r.cap??'';
+  document.getElementById('fStatus').value=r.status;
+  document.getElementById('fRemark').value=r.remark||'';
+  setAgv(r.agv==='是');
+  document.getElementById('fAgvCode').value=r.agvCode||'';
+  document.getElementById('fAgvDev').value=r.agvDev||'';
+  om('formM');
+}
+function confirmForm(){
+  const kb=document.getElementById('fKubie').value;
+  const kq=document.getElementById('fKuqu').value;
+  const cd=document.getElementById('fCode').value.trim();
+  const cp=document.getElementById('fCap').value;
+  const st=document.getElementById('fStatus').value;
+  if(!kb||!kq||!cd){showToast('请填写必填字段（库别、库区、库位编号）','wn');return;}
+  if(agvOn && !document.getElementById('fAgvCode').value.trim()){showToast('请填写接驳点位编号','wn');return;}
+  if(!isEdit && LOC.find(r=>r.code===cd&&r.kubie===kb)){showToast(`同一库别下库位编号 ${cd} 已存在`,'wn');return;}
+  const now=getNow();
+  if(isEdit){
+    Object.assign(LOC[curIdx],{kubie:kb,kuqu:kq,code:cd,cap:cp?parseInt(cp):null,status:st,
+      agv:agvOn?'是':'否',
+      agvCode:agvOn?document.getElementById('fAgvCode').value.trim():'',
+      agvDev:agvOn?document.getElementById('fAgvDev').value.trim():'',
+      remark:document.getElementById('fRemark').value.trim()});
+    showToast(`库位 ${cd} 更新成功`,'ok');
+  } else {
+    LOC.push({id:nextId++,kubie:kb,kuqu:kq,code:cd,cap:cp?parseInt(cp):null,status:st,
+      agv:agvOn?'是':'否',
+      agvCode:agvOn?document.getElementById('fAgvCode').value.trim():'',
+      agvDev:agvOn?document.getElementById('fAgvDev').value.trim():'',
+      remark:document.getElementById('fRemark').value.trim(),creator:'孟琼',ctime:now});
+    showToast(`库位 ${cd} 新增成功`,'ok');
+  }
+  cm('formM'); applyFilter();
+}
+
+// ── Delete ──
+function openDel(i){
+  delIdx=i;
+  const r=LOC[i];
+  document.getElementById('delInfo').innerHTML=`
+    <div class="ii"><span class="il">库位编号</span><span class="iv mono">${r.code}</span></div>
+    <div class="ii"><span class="il">库别</span><span class="iv">${r.kubie}</span></div>
+    <div class="ii"><span class="il">库区</span><span class="iv">${r.kuqu}</span></div>
+    <div class="ii"><span class="il">当前状态</span><span class="iv">${r.status}</span></div>`;
+  om('delM');
+}
+function confirmDel(){
+  const r=LOC[delIdx];
+  if(r.status==='占用'){showToast(`库位 ${r.code} 状态为「占用」，无法删除`,'er');cm('delM');return;}
+  LOC.splice(delIdx,1);
+  cm('delM'); applyFilter();
+  showToast('库位已删除','ok');
+}
+function openBatchDel(){
+  document.getElementById('bdelCnt').textContent=sel.size;
+  om('bdelM');
+}
+function confirmBatchDel(){
+  let skip=0;
+  [...sel].forEach(id=>{
+    const i=LOC.findIndex(r=>String(r.id)===id);
+    if(i<0) return;
+    if(LOC[i].status==='占用'){skip++;return;}
+    LOC.splice(i,1);
+  });
+  sel.clear();
+  cm('bdelM'); applyFilter();
+  skip>0?showToast(`批量删除完成，${skip} 条占用库位已跳过`,'wn'):showToast('批量删除成功','ok');
+}
+
+// ── Enable / Disable ──
+function openToggle(i,action){
+  curIdx=i; togAction=action;
+  const r=LOC[i];
+  document.getElementById('togTitle').innerHTML=`<div class="mic mic-tog">⚙️</div>${action}库位`;
+  document.getElementById('togInfo').innerHTML=`
+    <div class="info-grid">
+      <div class="ii"><span class="il">库位编号</span><span class="iv mono">${r.code}</span></div>
+      <div class="ii"><span class="il">库别</span><span class="iv">${r.kubie}</span></div>
+      <div class="ii"><span class="il">库区</span><span class="iv">${r.kuqu}</span></div>
+      <div class="ii"><span class="il">当前状态</span><span class="iv">${r.status}</span></div>
+    </div>`;
+  const isEnable = action==='启用';
+  const al = document.getElementById('togAlert');
+  al.className = `al ${isEnable?'ok':'wn'}`;
+  document.getElementById('togMsg').textContent = isEnable
+    ? `确认将库位 ${r.code} 状态更新为「空闲」并恢复正常使用？`
+    : `确认将库位 ${r.code} 禁用？禁用后该库位将不可分配。`;
+  const btn=document.getElementById('togBtn');
+  btn.textContent='确认'+action;
+  btn.className=`btn ${isEnable?'bok':'bdf'}`;
+  om('togM');
+}
+function confirmToggle(){
+  const r=LOC[curIdx];
+  if(togAction==='禁用'&&r.status==='占用'){showToast(`库位 ${r.code} 当前占用中，无法禁用`,'er');cm('togM');return;}
+  r.status=togAction==='启用'?'空闲':'禁用';
+  cm('togM'); applyFilter();
+  showToast(`库位 ${r.code} 已${togAction}`,'ok');
+}
+function openBatchToggle(action){
+  togAction=action;
+  const isEnable=action==='启用';
+  document.getElementById('btogTitle').innerHTML=`<div class="mic mic-tog">⚙️</div>批量${action}`;
+  const al=document.getElementById('btogAlert');
+  al.className=`al ${isEnable?'ok':'wn'}`;
+  document.getElementById('btogMsg').innerHTML=`将对已选 <strong>${sel.size}</strong> 条库位执行批量${action}操作。${!isEnable?'占用中的库位将<strong>自动跳过</strong>。':''}`;
+  const btn=document.getElementById('btogBtn');
+  btn.textContent='确认批量'+action;
+  btn.className=`btn ${isEnable?'bok':'bdf'}`;
+  om('btogM');
+}
+function confirmBatchToggle(){
+  let skip=0;
+  [...sel].forEach(id=>{
+    const r=LOC.find(r=>String(r.id)===id);
+    if(!r) return;
+    if(togAction==='禁用'&&r.status==='占用'){skip++;return;}
+    r.status=togAction==='启用'?'空闲':'禁用';
+  });
+  cm('btogM'); applyFilter();
+  skip>0?showToast(`批量${togAction}完成，${skip} 条占用库位已跳过`,'wn'):showToast(`批量${togAction}成功`,'ok');
+}
+
+// ── Import ──
+let fileSelected=false;
+function fakeSelectFile(){
+  if(fileSelected) return;
+  fileSelected=true;
+  document.getElementById('dzIcon').textContent='✅';
+  document.getElementById('dzTitle').textContent='库位数据_20260529.xlsx';
+  document.getElementById('dzSub').textContent='已解析完成，点击「开始导入」确认写入';
+  document.getElementById('dropzone').style.borderColor='var(--ok)';
+  document.getElementById('dropzone').style.background='var(--okl)';
+  document.getElementById('impPreview').style.display='block';
+  document.getElementById('impFileName').textContent='库位数据_20260529.xlsx';
+  document.getElementById('impTotal').textContent='6';
+  document.getElementById('impNew').textContent='4';
+  document.getElementById('impUpd').textContent='2';
+  document.getElementById('impErr').textContent='0';
+}
+function confirmImport(){
+  if(!fileSelected){showToast('请先选择导入文件','wn');return;}
+  cm('impM');
+  fileSelected=false;
+  document.getElementById('dzIcon').textContent='📄';
+  document.getElementById('dzTitle').textContent='点击选择文件，或将 Excel 拖拽至此';
+  document.getElementById('dzSub').textContent='支持 .xlsx / .xls，单次最多 500 条库位';
+  document.getElementById('dropzone').style.borderColor='';
+  document.getElementById('dropzone').style.background='';
+  document.getElementById('impPreview').style.display='none';
+  showToast('导入成功，新增 4 条、更新 2 条库位记录','ok');
+  applyFilter();
+}
+
+// ── Export ──
+function openExport(){
+  updateExpPreview();
+  om('expM');
+}
+function updateExpPreview(){
+  const kb=document.getElementById('expKubie').value;
+  const st=document.getElementById('expStatus').value;
+  let data=[...LOC];
+  if(kb) data=data.filter(r=>r.kubie===kb);
+  if(st) data=data.filter(r=>r.status===st);
+  document.getElementById('expPreview').innerHTML=`
+    <div class="exp-row"><span class="exp-key">导出范围</span><span class="exp-val">${kb||'全部库别'} · ${st||'全部状态'}</span></div>
+    <div class="exp-row"><span class="exp-key">记录总数</span><span class="exp-val">${data.length} 条</span></div>
+    <div class="exp-row"><span class="exp-key">导出字段</span><span class="exp-val">库别、库区、库位、容量、状态、是否接驳位、接驳点位、备注、创建人、时间</span></div>
+    <div class="exp-row"><span class="exp-key">文件格式</span><span class="exp-val">库位数据_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx</span></div>`;
+}
+document.addEventListener('change',e=>{if(e.target.id==='expKubie'||e.target.id==='expStatus') updateExpPreview();});
+function confirmExport(){
+  cm('expM');
+  showToast('导出中，请稍候…');
+  setTimeout(()=>showToast('导出完成','ok'),1200);
+}
+
+// ── Helpers ──
+function om(id){document.getElementById(id).classList.add('on')}
+function cm(id){document.getElementById(id).classList.remove('on')}
+document.querySelectorAll('.ov').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('on')}));
+function showToast(msg,type=''){
+  const w=document.getElementById('tw');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  const ic={ok:'✓',wn:'⚠',er:'✕'};
+  t.innerHTML=`<span>${ic[type]||'ℹ'}</span>${msg}`;
+  w.appendChild(t);
+  setTimeout(()=>{t.style.animation='tout .2s ease forwards';setTimeout(()=>t.remove(),220)},3500);
+}
+function getNow(){
+  const n=new Date(),p=v=>String(v).padStart(2,'0');
+  return `${n.getFullYear()}-${p(n.getMonth()+1)}-${p(n.getDate())} ${p(n.getHours())}:${p(n.getMinutes())}`;
+}
+
+applyFilter();
+</script>
+</body>
+</html>
