@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4.1 AGV料车管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F5F6FA;
+  --surface:#FFFFFF;
+  --surface-2:#F8F9FC;
+  --border:#E4E7EF;
+  --border-strong:#CDD2E1;
+  --text-1:#1A2033;
+  --text-2:#4B5673;
+  --text-3:#8C94A9;
+  --blue:#1A56DB;
+  --blue-bg:#EEF2FF;
+  --blue-light:#3B82F6;
+  --teal:#0891B2;
+  --teal-bg:#ECFEFF;
+  --green:#15803D;
+  --green-bg:#DCFCE7;
+  --amber:#B45309;
+  --amber-bg:#FEF3C7;
+  --red:#B91C1C;
+  --red-bg:#FEE2E2;
+  --gray-bg:#F1F3F9;
+  --sidebar:220px;
+  --header:52px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text-1);font-size:13px;line-height:1.5;display:flex;min-height:100vh}
+
+/* Sidebar */
+.sidebar{width:var(--sidebar);background:#111827;color:#9CA3AF;flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.slogo{padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:10px}
+.slogo-mark{width:26px;height:26px;background:linear-gradient(135deg,#1A56DB,#0891B2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.slogo-name{font-size:12px;font-weight:600;color:#F9FAFB}
+.slogo-ver{font-size:10px;color:#4B5563;font-family:'JetBrains Mono'}
+.snav{flex:1;padding:8px 0}
+.sgroup{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#4B5563;padding:12px 18px 4px}
+.sitem{display:flex;align-items:center;gap:9px;padding:7px 18px;font-size:12.5px;color:#9CA3AF;cursor:pointer;border-left:2px solid transparent;transition:all .14s}
+.sitem:hover{background:rgba(255,255,255,.04);color:#E5E7EB}
+.sitem.active{background:rgba(26,86,219,.15);color:#60A5FA;border-left-color:#3B82F6}
+.sbadge{margin-left:auto;background:#B45309;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px}
+.sfoot{padding:10px;border-top:1px solid rgba(255,255,255,.07)}
+.suser{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;cursor:pointer}
+.suser:hover{background:rgba(255,255,255,.04)}
+.savatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#8B5CF6);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0}
+.suser-name{font-size:12px;font-weight:500;color:#E5E7EB}
+.suser-role{font-size:10px;color:#6B7280}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:var(--header);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 22px;gap:14px;flex-shrink:0}
+.breadcrumb{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-3)}
+.breadcrumb span{color:var(--text-1);font-weight:500}
+.breadcrumb svg{width:12px;height:12px}
+.topbar-r{margin-left:auto;display:flex;gap:9px;align-items:center}
+.tbtn{height:30px;padding:0 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;background:var(--surface);color:var(--text-2);display:flex;align-items:center;gap:5px;transition:all .13s}
+.tbtn:hover{border-color:var(--blue-light);color:var(--blue)}
+.tbtn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.tbtn.primary:hover{background:#1D4ED8}
+.tbtn svg{width:12px;height:12px}
+
+.content{flex:1;overflow-y:auto;padding:20px 22px}
+
+/* Filter bar */
+.filter-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.filter-label{font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap}
+.finput{height:30px;padding:0 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text-1);background:var(--surface-2);outline:none;width:180px}
+.finput:focus{border-color:var(--blue-light)}
+.fselect{height:30px;padding:0 28px 0 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text-1);background:var(--surface-2);cursor:pointer;appearance:none}
+.chip-row{display:flex;gap:6px}
+.chip{height:26px;padding:0 10px;border-radius:13px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text-2);display:flex;align-items:center;gap:4px;transition:all .13s}
+.chip .dot{width:5px;height:5px;border-radius:50%}
+.chip.on{background:var(--blue-bg);color:var(--blue);border-color:#C7D7FD}
+.filter-r{margin-left:auto;display:flex;gap:8px}
+
+/* Table card */
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.table-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.table-title{font-size:13px;font-weight:600;color:var(--text-1)}
+.table-total{font-size:12px;color:var(--text-3);margin-left:4px}
+.table-acts{margin-left:auto;display:flex;gap:7px}
+
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--surface-2)}
+th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;border-bottom:1px solid var(--border)}
+th.sort{cursor:pointer;user-select:none}
+th.sort:hover{color:var(--text-2)}
+td{padding:11px 14px;border-top:1px solid var(--border);font-size:13px;vertical-align:middle}
+tr:hover td{background:#FAFBFE}
+
+.car-no{font-family:'JetBrains Mono';font-size:12px;font-weight:500;color:var(--blue);background:var(--blue-bg);padding:2px 8px;border-radius:4px;display:inline-block}
+
+.status-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:11px;font-size:11px;font-weight:500}
+.status-tag .dot{width:5px;height:5px;border-radius:50%}
+.st-idle{background:var(--green-bg);color:var(--green)}.st-idle .dot{background:var(--green)}
+.st-busy{background:var(--amber-bg);color:var(--amber)}.st-busy .dot{background:var(--amber)}
+.st-disabled{background:var(--gray-bg);color:var(--text-3)}.st-disabled .dot{background:var(--text-3)}
+
+.cap-badge{font-family:'JetBrains Mono';font-size:12px;color:var(--text-2)}
+.ts-text{font-size:12px;color:var(--text-3);font-family:'JetBrains Mono'}
+
+.row-btns{display:flex;gap:5px}
+.rbtn{height:24px;padding:0 9px;border:1px solid var(--border);border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;background:var(--surface);color:var(--text-2);transition:all .13s}
+.rbtn:hover{border-color:var(--blue-light);color:var(--blue)}
+.rbtn.danger:hover{border-color:var(--red);color:var(--red)}
+.rbtn.warn:hover{border-color:var(--amber);color:var(--amber)}
+.rbtn:disabled{opacity:.35;cursor:not-allowed}
+
+input[type=checkbox]{accent-color:var(--blue);width:13px;height:13px;cursor:pointer}
+
+.pager{padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:7px}
+.pager-info{font-size:12px;color:var(--text-3);margin-right:auto}
+.pbtn{height:26px;min-width:26px;padding:0 7px;border:1px solid var(--border);border-radius:5px;font-size:12px;cursor:pointer;background:var(--surface);color:var(--text-2)}
+.pbtn.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.pbtn:hover:not(.on){border-color:var(--blue-light);color:var(--blue)}
+
+/* Modal overlay */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--surface);border-radius:12px;width:440px;box-shadow:0 20px 60px rgba(0,0,0,.18);overflow:hidden}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:15px;font-weight:600;color:var(--text-1)}
+.modal-close{width:26px;height:26px;border:1px solid var(--border);border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-3)}
+.modal-close:hover{background:var(--surface-2)}
+.modal-body{padding:20px}
+.form-row{margin-bottom:14px}
+.form-label{font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:5px;display:flex;align-items:center;gap:4px}
+.req{color:var(--red);font-size:11px}
+.form-input{width:100%;height:34px;padding:0 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;color:var(--text-1);background:var(--surface);outline:none;transition:border-color .13s}
+.form-input:focus{border-color:var(--blue-light)}
+.form-hint{font-size:11px;color:var(--text-3);margin-top:4px}
+.form-input.disabled{background:var(--surface-2);color:var(--text-3);cursor:not-allowed}
+.form-select{width:100%;height:34px;padding:0 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;color:var(--text-1);background:var(--surface);cursor:pointer;appearance:none}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:9px}
+.mbtn{height:32px;padding:0 18px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer}
+.mbtn.cancel{border:1px solid var(--border);background:var(--surface);color:var(--text-2)}
+.mbtn.confirm{border:none;background:var(--blue);color:#fff}
+.mbtn.confirm:hover{background:#1D4ED8}
+
+/* Toast */
+.toast{position:fixed;top:20px;right:20px;z-index:999;background:#111827;color:#F9FAFB;padding:10px 16px;border-radius:8px;font-size:13px;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.3);animation:slideIn .2s ease;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+@keyframes slideIn{from{transform:translateY(-8px);opacity:0}to{transform:translateY(0);opacity:1}}
+.toast-icon{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.toast.ok .toast-icon{background:var(--green)}
+.toast.err .toast-icon{background:var(--red)}
+
+/* Confirm dialog */
+.confirm-box{background:var(--surface);border-radius:10px;width:340px;box-shadow:0 12px 40px rgba(0,0,0,.2);overflow:hidden}
+.confirm-body{padding:22px 22px 16px;display:flex;gap:14px}
+.confirm-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.confirm-icon.warn{background:var(--amber-bg);color:var(--amber)}
+.confirm-icon.danger{background:var(--red-bg);color:var(--red)}
+.confirm-title{font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:4px}
+.confirm-msg{font-size:12px;color:var(--text-2);line-height:1.5}
+.confirm-foot{padding:12px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="slogo">
+    <div class="slogo-mark">M</div>
+    <div><div class="slogo-name">MES 智造平台</div><div class="slogo-ver">智能制程 · AGV配送</div></div>
+  </div>
+  <nav class="snav">
+    <div class="sgroup">生产过程管理</div>
+    <div class="sitem">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>生产总览
+    </div>
+    <div class="sgroup">AGV配送</div>
+    <div class="sitem active">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M12 12v3"/></svg>AGV料车管理
+    </div>
+    <div class="sitem">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>AGV库位管理
+    </div>
+    <div class="sitem">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>AGV运输管理
+      <span class="sbadge">8</span>
+    </div>
+    <div class="sgroup">仓储管理</div>
+    <div class="sitem">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0v10l-8 4-8-4V7m16 0L12 11M4 7l8 4"/></svg>出库及库存管理
+    </div>
+    <div class="sitem">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg>产线叫料管理
+    </div>
+  </nav>
+  <div class="sfoot">
+    <div class="suser">
+      <div class="savatar">孟</div>
+      <div><div class="suser-name">孟琼</div><div class="suser-role">MES管理员</div></div>
+    </div>
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="main">
+  <div class="topbar">
+    <div class="breadcrumb">
+      智能制程 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      MES <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      AGV配送 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      <span>AGV料车管理</span>
+    </div>
+    <div class="topbar-r">
+      <button class="tbtn" onclick="showModal('import')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>导入
+      </button>
+      <button class="tbtn" onclick="exportAction()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>导出
+      </button>
+      <button class="tbtn primary" onclick="showModal('add')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4"/></svg>新增料车
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Filter -->
+    <div class="filter-card">
+      <span class="filter-label">筛选</span>
+      <div style="position:relative">
+        <svg width="12" height="12" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#9CA3AF" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input class="finput" style="padding-left:26px" placeholder="料车编号搜索…" type="text">
+      </div>
+      <select class="fselect">
+        <option>全部状态</option>
+        <option>空闲</option>
+        <option>占用</option>
+        <option>禁用</option>
+      </select>
+      <div class="chip-row">
+        <div class="chip on"><span class="dot" style="background:var(--blue)"></span>全部</div>
+        <div class="chip"><span class="dot" style="background:var(--green)"></span>空闲</div>
+        <div class="chip"><span class="dot" style="background:var(--amber)"></span>占用</div>
+        <div class="chip"><span class="dot" style="background:var(--text-3)"></span>禁用</div>
+      </div>
+      <div class="filter-r">
+        <button class="tbtn">重置</button>
+        <button class="tbtn primary">查询</button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <div class="table-head">
+        <div class="table-title">料车列表</div>
+        <span class="table-total">共 18 条</span>
+        <div class="table-acts">
+          <button class="tbtn" onclick="showBulkAction('enable')">批量启用</button>
+          <button class="tbtn" onclick="showBulkAction('disable')">批量禁用</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:38px"><input type="checkbox" id="checkAll" onchange="toggleAll(this)"></th>
+            <th class="sort">料车编号 ↕</th>
+            <th>状态</th>
+            <th class="sort">容量/框 ↕</th>
+            <th>创建人</th>
+            <th class="sort">创建时间 ↕</th>
+            <th style="width:160px">操作</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr>
+            <td><input type="checkbox" class="row-check"></td>
+            <td><span class="car-no">LC-001</span></td>
+            <td><span class="status-tag st-idle"><span class="dot"></span>空闲</span></td>
+            <td><span class="cap-badge">6 框</span></td>
+            <td style="color:var(--text-2)">Warm.Meng</td>
+            <td><span class="ts-text">2026-06-01 08:30:00</span></td>
+            <td>
+              <div class="row-btns">
+                <button class="rbtn" onclick="showModal('edit','LC-001')">编辑</button>
+                <button class="rbtn warn" onclick="showConfirm('disable','LC-001')">禁用</button>
+                <button class="rbtn danger" onclick="showConfirm('delete','LC-001')">删除</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="row-check"></td>
+            <td><span class="car-no">LC-002</span></td>
+            <td><span class="status-tag st-busy"><span class="dot"></span>占用</span></td>
+            <td><span class="cap-badge">8 框</span></td>
+            <td style="color:var(--text-2)">Mango.Liu</td>
+            <td><span class="ts-text">2026-06-01 09:10:00</span></td>
+            <td>
+              <div class="row-btns">
+                <button class="rbtn" onclick="showModal('edit','LC-002')">编辑</button>
+                <button class="rbtn warn" disabled title="占用中不可禁用">禁用</button>
+                <button class="rbtn danger" disabled title="占用中不可删除">删除</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="row-check"></td>
+            <td><span class="car-no">LC-003</span></td>
+            <td><span class="status-tag st-idle"><span class="dot"></span>空闲</span></td>
+            <td><span class="cap-badge">6 框</span></td>
+            <td style="color:var(--text-2)">Warm.Meng</td>
+            <td><span class="ts-text">2026-06-02 10:00:00</span></td>
+            <td>
+              <div class="row-btns">
+                <button class="rbtn" onclick="showModal('edit','LC-003')">编辑</button>
+                <button class="rbtn warn" onclick="showConfirm('disable','LC-003')">禁用</button>
+                <button class="rbtn danger" onclick="showConfirm('delete','LC-003')">删除</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="row-check"></td>
+            <td><span class="car-no">LC-004</span></td>
+            <td><span class="status-tag st-disabled"><span class="dot"></span>禁用</span></td>
+            <td><span class="cap-badge">4 框</span></td>
+            <td style="color:var(--text-2)">Mango.Liu</td>
+            <td><span class="ts-text">2026-06-03 14:20:00</span></td>
+            <td>
+              <div class="row-btns">
+                <button class="rbtn" onclick="showModal('edit','LC-004')">编辑</button>
+                <button class="rbtn" style="color:var(--green)" onclick="showConfirm('enable','LC-004')">启用</button>
+                <button class="rbtn danger" onclick="showConfirm('delete','LC-004')">删除</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="row-check"></td>
+            <td><span class="car-no">LC-005</span></td>
+            <td><span class="status-tag st-busy"><span class="dot"></span>占用</span></td>
+            <td><span class="cap-badge">10 框</span></td>
+            <td style="color:var(--text-2)">Warm.Meng</td>
+            <td><span class="ts-text">2026-06-04 08:00:00</span></td>
+            <td>
+              <div class="row-btns">
+                <button class="rbtn" onclick="showModal('edit','LC-005')">编辑</button>
+                <button class="rbtn warn" disabled>禁用</button>
+                <button class="rbtn danger" disabled>删除</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" class="row-check"></td>
+            <td><span class="car-no">LC-006</span></td>
+            <td><span class="status-tag st-idle"><span class="dot"></span>空闲</span></td>
+            <td><span class="cap-badge">6 框</span></td>
+            <td style="color:var(--text-2)">Mango.Liu</td>
+            <td><span class="ts-text">2026-06-05 11:30:00</span></td>
+            <td>
+              <div class="row-btns">
+                <button class="rbtn" onclick="showModal('edit','LC-006')">编辑</button>
+                <button class="rbtn warn" onclick="showConfirm('disable','LC-006')">禁用</button>
+                <button class="rbtn danger" onclick="showConfirm('delete','LC-006')">删除</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pager">
+        <span class="pager-info">共 18 条 · 每页 10 条</span>
+        <button class="pbtn">«</button>
+        <button class="pbtn on">1</button>
+        <button class="pbtn">2</button>
+        <button class="pbtn">»</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-bg" id="modalBg" style="display:none" onclick="closeModalBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">新增料车</span>
+      <div class="modal-close" onclick="closeModal()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-label">料车编号 <span class="req">*</span></div>
+        <input class="form-input" id="fieldNo" placeholder="请输入料车编号，全局唯一">
+        <div class="form-hint">全局唯一，不允许重复，重复将提示"料车编号已存在，请检查"</div>
+      </div>
+      <div class="form-row">
+        <div class="form-label">状态 <span class="req">*</span></div>
+        <select class="form-select" id="fieldStatus">
+          <option value="idle">空闲</option>
+          <option value="busy">占用</option>
+          <option value="disabled">禁用</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-label">容量/框 <span class="req">*</span></div>
+        <input class="form-input" id="fieldCap" type="number" min="1" placeholder="请输入正整数">
+      </div>
+      <div class="form-row" id="roFields" style="display:none">
+        <div class="form-label">创建人</div>
+        <input class="form-input disabled" value="Warm.Meng" readonly>
+      </div>
+      <div class="form-row" id="roFieldsTime" style="display:none">
+        <div class="form-label">创建时间</div>
+        <input class="form-input disabled" id="fieldTime" readonly>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="mbtn cancel" onclick="closeModal()">取消</button>
+      <button class="mbtn confirm" onclick="submitModal()">确认保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-bg" id="importBg" style="display:none" onclick="closeImportBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">批量导入料车</span>
+      <div class="modal-close" onclick="document.getElementById('importBg').style.display='none'">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--surface-2);border:2px dashed var(--border);border-radius:8px;padding:28px;text-align:center;cursor:pointer" onclick="showToast('请选择文件上传','ok')">
+        <svg width="32" height="32" fill="none" stroke="var(--text-3)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 10px"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+        <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:4px">点击或拖拽上传 Excel 文件</div>
+        <div style="font-size:12px;color:var(--text-3)">支持 .xlsx 格式，最大 5MB</div>
+      </div>
+      <div style="margin-top:14px;padding:12px;background:var(--blue-bg);border-radius:7px;font-size:12px;color:var(--blue)">
+        <strong>导入说明：</strong>按模板格式填写 料车编号、状态、容量/框、创建人、创建时间。<br>料车编号重复时，将<strong>覆盖更新</strong>已有数据。
+      </div>
+      <div style="margin-top:10px">
+        <a href="#" style="font-size:12px;color:var(--blue);text-decoration:none" onclick="showToast('模板下载中…','ok');return false">↓ 下载导入模板</a>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="mbtn cancel" onclick="document.getElementById('importBg').style.display='none'">取消</button>
+      <button class="mbtn confirm" onclick="document.getElementById('importBg').style.display='none';showToast('导入成功，共新增 3 条记录','ok')">确认导入</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="modal-bg" id="confirmBg" style="display:none" onclick="closeConfirmBg(event)">
+  <div class="confirm-box">
+    <div class="confirm-body">
+      <div class="confirm-icon" id="confirmIcon">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+      </div>
+      <div>
+        <div class="confirm-title" id="confirmTitle">确认操作</div>
+        <div class="confirm-msg" id="confirmMsg">请确认是否继续？</div>
+      </div>
+    </div>
+    <div class="confirm-foot">
+      <button class="mbtn cancel" onclick="document.getElementById('confirmBg').style.display='none'">取消</button>
+      <button class="mbtn confirm" id="confirmOkBtn" onclick="doConfirmAction()">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <div class="toast-icon">
+    <svg width="10" height="10" fill="none" stroke="#fff" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+  </div>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+let currentAction = null;
+let currentTarget = null;
+
+function showModal(type, carNo) {
+  const bg = document.getElementById('modalBg');
+  const title = document.getElementById('modalTitle');
+  const roFields = document.getElementById('roFields');
+  const roFieldsTime = document.getElementById('roFieldsTime');
+  bg.style.display = 'flex';
+  if (type === 'add') {
+    title.textContent = '新增料车';
+    document.getElementById('fieldNo').value = '';
+    document.getElementById('fieldNo').readOnly = false;
+    document.getElementById('fieldCap').value = '';
+    roFields.style.display = 'none';
+    roFieldsTime.style.display = 'none';
+  } else {
+    title.textContent = '编辑料车 · ' + carNo;
+    document.getElementById('fieldNo').value = carNo;
+    document.getElementById('fieldNo').readOnly = false;
+    document.getElementById('fieldCap').value = '6';
+    document.getElementById('fieldTime').value = '2026-06-01 08:30:00';
+    roFields.style.display = 'block';
+    roFieldsTime.style.display = 'block';
+  }
+}
+function closeModal() { document.getElementById('modalBg').style.display = 'none'; }
+function closeModalBg(e) { if (e.target.id === 'modalBg') closeModal(); }
+function submitModal() {
+  const no = document.getElementById('fieldNo').value.trim();
+  const cap = document.getElementById('fieldCap').value;
+  if (!no) { showToast('必填字段不能为空，请检查','err'); return; }
+  if (!cap || parseInt(cap) <= 0) { showToast('容量必须为正整数，请检查','err'); return; }
+  closeModal();
+  showToast(document.getElementById('modalTitle').textContent.startsWith('新增') ? '新增成功' : '编辑成功', 'ok');
+}
+function showModal2(type) {
+  if (type === 'import') {
+    document.getElementById('importBg').style.display = 'flex';
+  }
+}
+function showModal(type, carNo) {
+  if (type === 'import') { document.getElementById('importBg').style.display = 'flex'; return; }
+  const bg = document.getElementById('modalBg');
+  const title = document.getElementById('modalTitle');
+  const roFields = document.getElementById('roFields');
+  const roFieldsTime = document.getElementById('roFieldsTime');
+  bg.style.display = 'flex';
+  if (type === 'add') {
+    title.textContent = '新增料车';
+    document.getElementById('fieldNo').value = '';
+    document.getElementById('fieldNo').readOnly = false;
+    document.getElementById('fieldCap').value = '';
+    roFields.style.display = 'none';
+    roFieldsTime.style.display = 'none';
+  } else {
+    title.textContent = '编辑料车 · ' + carNo;
+    document.getElementById('fieldNo').value = carNo;
+    document.getElementById('fieldNo').readOnly = false;
+    document.getElementById('fieldCap').value = '6';
+    document.getElementById('fieldTime').value = '2026-06-01 08:30:00';
+    roFields.style.display = 'block';
+    roFieldsTime.style.display = 'block';
+  }
+}
+function closeImportBg(e) { if (e.target.id === 'importBg') document.getElementById('importBg').style.display='none'; }
+
+function showConfirm(action, target) {
+  currentAction = action; currentTarget = target;
+  const bg = document.getElementById('confirmBg');
+  const icon = document.getElementById('confirmIcon');
+  const titleEl = document.getElementById('confirmTitle');
+  const msgEl = document.getElementById('confirmMsg');
+  const okBtn = document.getElementById('confirmOkBtn');
+  const msgs = {
+    delete: ['删除料车', `确认删除料车 ${target}？删除后无法恢复。`, 'danger', '确认删除'],
+    disable: ['禁用料车', `确认禁用料车 ${target}？禁用后料车将无法被调度。`, 'warn', '确认禁用'],
+    enable: ['启用料车', `确认启用料车 ${target}？启用后状态将恢复为空闲。`, 'warn', '确认启用'],
+  };
+  const [t, m, cls, okText] = msgs[action];
+  titleEl.textContent = t;
+  msgEl.textContent = m;
+  icon.className = 'confirm-icon ' + (cls === 'danger' ? 'danger' : 'warn');
+  okBtn.textContent = okText;
+  okBtn.style.background = cls === 'danger' ? 'var(--red)' : 'var(--amber)';
+  bg.style.display = 'flex';
+}
+function closeConfirmBg(e) { if (e.target.id === 'confirmBg') document.getElementById('confirmBg').style.display='none'; }
+function doConfirmAction() {
+  document.getElementById('confirmBg').style.display = 'none';
+  const toasts = { delete: '删除成功', disable: '禁用成功', enable: '启用成功' };
+  showToast(toasts[currentAction], 'ok');
+}
+function showBulkAction(type) {
+  const checks = document.querySelectorAll('.row-check:checked');
+  if (!checks.length) { showToast('请先勾选需要操作的料车','err'); return; }
+  showToast(`已${type==='enable'?'启用':'禁用'} ${checks.length} 辆料车`, 'ok');
+}
+function toggleAll(el) { document.querySelectorAll('.row-check').forEach(c => c.checked = el.checked); }
+function exportAction() { showToast('正在导出，请稍候…', 'ok'); }
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  const m = document.getElementById('toastMsg');
+  m.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>

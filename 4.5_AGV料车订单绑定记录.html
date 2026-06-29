@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4.5 AGV料车订单绑定记录</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F5F6FA;
+  --surface:#FFFFFF;
+  --surface-2:#F8F9FC;
+  --border:#E4E7EF;
+  --text-1:#1A2033;
+  --text-2:#4B5673;
+  --text-3:#8C94A9;
+  --blue:#1A56DB;
+  --blue-bg:#EEF2FF;
+  --blue-lt:#3B82F6;
+  --green:#15803D;
+  --green-bg:#DCFCE7;
+  --amber:#B45309;
+  --amber-bg:#FEF3C7;
+  --red:#B91C1C;
+  --red-bg:#FEE2E2;
+  --gray-bg:#F1F3F9;
+  --sidebar:220px;
+  --header:52px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text-1);font-size:13px;line-height:1.5;display:flex;min-height:100vh}
+
+/* ── Sidebar ── */
+.sidebar{width:var(--sidebar);background:#111827;color:#9CA3AF;flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.slogo{padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:10px}
+.slogo-mark{width:26px;height:26px;background:linear-gradient(135deg,#1A56DB,#0891B2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.slogo-name{font-size:12px;font-weight:600;color:#F9FAFB}
+.slogo-ver{font-size:10px;color:#4B5563;font-family:'JetBrains Mono'}
+.snav{flex:1;padding:8px 0}
+.sgroup{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#4B5563;padding:12px 18px 4px}
+.sitem{display:flex;align-items:center;gap:9px;padding:7px 18px;font-size:12.5px;color:#9CA3AF;cursor:pointer;border-left:2px solid transparent;transition:all .14s}
+.sitem:hover{background:rgba(255,255,255,.04);color:#E5E7EB}
+.sitem.active{background:rgba(26,86,219,.15);color:#60A5FA;border-left-color:#3B82F6}
+.sbadge{margin-left:auto;background:#B45309;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px}
+.sfoot{padding:10px;border-top:1px solid rgba(255,255,255,.07)}
+.suser{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px}
+.savatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#8B5CF6);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0}
+.suser-name{font-size:12px;font-weight:500;color:#E5E7EB}
+.suser-role{font-size:10px;color:#6B7280}
+
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:var(--header);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 22px;gap:14px;flex-shrink:0}
+.breadcrumb{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-3)}
+.breadcrumb span{color:var(--text-1);font-weight:500}
+.breadcrumb svg{width:12px;height:12px}
+.topbar-r{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tbtn{height:30px;padding:0 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;background:var(--surface);color:var(--text-2);display:flex;align-items:center;gap:5px;transition:all .13s}
+.tbtn:hover{border-color:var(--blue-lt);color:var(--blue)}
+.tbtn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.tbtn.primary:hover{background:#1D4ED8}
+.tbtn svg{width:12px;height:12px}
+
+.content{flex:1;overflow-y:auto;padding:20px 22px}
+
+/* ── Stats strip ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px}
+.stat-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stat-icon svg{width:16px;height:16px}
+.stat-body{}
+.stat-val{font-family:'JetBrains Mono';font-size:22px;font-weight:700;line-height:1;letter-spacing:-0.02em}
+.stat-label{font-size:11px;color:var(--text-3);margin-top:3px}
+.stat-delta{font-size:11px;font-weight:500;margin-top:4px}
+.stat-delta.up{color:var(--green)}
+.stat-delta.down{color:var(--red)}
+
+/* ── Filter card ── */
+.filter-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.filter-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.filter-row+.filter-row{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.filter-label{font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap}
+.search-wrap{position:relative;display:flex;align-items:center}
+.search-wrap svg{position:absolute;left:9px;color:var(--text-3);pointer-events:none;width:13px;height:13px}
+.finput{height:30px;padding:0 10px 0 28px;border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text-1);background:var(--surface-2);outline:none;width:220px}
+.finput:focus{border-color:var(--blue-lt);background:var(--surface)}
+.fselect{height:30px;padding:0 26px 0 9px;border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text-1);background:var(--surface-2);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238C94A9' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+.chip-row{display:flex;gap:6px}
+.chip{height:26px;padding:0 11px;border-radius:13px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text-2);display:flex;align-items:center;gap:4px;transition:all .13s;white-space:nowrap}
+.chip .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.chip.on{background:var(--blue-bg);color:var(--blue);border-color:#C7D7FD}
+.chip.on-green{background:var(--green-bg);color:var(--green);border-color:#86EFAC}
+.filter-r{margin-left:auto;display:flex;gap:8px}
+
+/* ── Table ── */
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.table-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.table-title{font-size:13px;font-weight:600;color:var(--text-1)}
+.table-total{font-size:12px;color:var(--text-3)}
+.table-acts{margin-left:auto;display:flex;gap:7px;align-items:center}
+.sel-count{font-size:12px;color:var(--text-3)}
+
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--surface-2)}
+th{padding:9px 13px;text-align:left;font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;border-bottom:1px solid var(--border)}
+th.sort{cursor:pointer;user-select:none}
+th.sort:hover{color:var(--text-2)}
+td{padding:11px 13px;border-top:1px solid var(--border);font-size:12.5px;vertical-align:middle}
+tr:hover td{background:#FAFBFE}
+tr.row-bound:hover td{background:#F0FFF4}
+tr.row-unbound:hover td{background:#FAFBFE}
+
+/* cell types */
+.rec-no{font-family:'JetBrains Mono';font-size:11px;font-weight:600;color:var(--blue)}
+.car-no{font-family:'JetBrains Mono';font-size:12px;font-weight:500;color:var(--blue);background:var(--blue-bg);padding:2px 7px;border-radius:4px;display:inline-block}
+.mono{font-family:'JetBrains Mono';font-size:11.5px;color:var(--text-2)}
+.mono-sm{font-family:'JetBrains Mono';font-size:10.5px;color:var(--text-3)}
+
+/* Binding status badge */
+.bind-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:11px;font-size:11px;font-weight:500;white-space:nowrap}
+.bind-badge .dot{width:5px;height:5px;border-radius:50%}
+.bb-bound{background:var(--green-bg);color:var(--green)}
+.bb-bound .dot{background:var(--green)}
+.bb-unbound{background:var(--gray-bg);color:var(--text-3)}
+.bb-unbound .dot{background:var(--text-3)}
+
+/* person+time stacked */
+.person-time{display:flex;flex-direction:column;gap:1px}
+.pt-person{font-size:12px;color:var(--text-2);font-weight:500}
+.pt-time{font-family:'JetBrains Mono';font-size:10.5px;color:var(--text-3)}
+.pt-empty{font-size:12px;color:var(--text-3)}
+
+/* row actions */
+.row-btns{display:flex;gap:5px}
+.rbtn{height:24px;padding:0 9px;border:1px solid var(--border);border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;background:var(--surface);color:var(--text-2);transition:all .13s;white-space:nowrap}
+.rbtn:hover{border-color:var(--blue-lt);color:var(--blue)}
+.rbtn.danger:hover{border-color:var(--red);color:var(--red)}
+.rbtn:disabled{opacity:.35;cursor:not-allowed}
+
+input[type=checkbox]{accent-color:var(--blue);width:13px;height:13px;cursor:pointer}
+
+/* pagination */
+.pager{padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:7px}
+.pager-info{font-size:12px;color:var(--text-3);margin-right:auto}
+.pager-size{height:26px;padding:0 8px;border:1px solid var(--border);border-radius:5px;font-size:12px;cursor:pointer;background:var(--surface);color:var(--text-2);appearance:none}
+.pbtn{height:26px;min-width:26px;padding:0 7px;border:1px solid var(--border);border-radius:5px;font-size:12px;cursor:pointer;background:var(--surface);color:var(--text-2)}
+.pbtn.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.pbtn:hover:not(.on){border-color:var(--blue-lt);color:var(--blue)}
+
+/* ── Detail drawer ── */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.22);z-index:150}
+.drawer{position:fixed;right:0;top:0;bottom:0;width:460px;background:var(--surface);box-shadow:-4px 0 28px rgba(0,0,0,.1);display:flex;flex-direction:column;overflow:hidden;z-index:151}
+.drawer-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.drawer-title{font-size:15px;font-weight:600;color:var(--text-1)}
+.drawer-subtitle{font-size:11px;color:var(--text-3);margin-top:1px;font-family:'JetBrains Mono'}
+.drawer-close{margin-left:auto;width:28px;height:28px;border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-3)}
+.drawer-close:hover{background:var(--surface-2)}
+.drawer-body{flex:1;overflow-y:auto;padding:0}
+
+/* drawer sections */
+.dsec{padding:18px 20px;border-bottom:1px solid var(--border)}
+.dsec-title{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px}
+.drow{display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0}
+.drow+.drow{border-top:1px solid var(--surface-2)}
+.dr-label{font-size:12px;color:var(--text-2);flex-shrink:0;width:90px}
+.dr-val{font-size:12px;font-weight:500;color:var(--text-1);font-family:'JetBrains Mono';text-align:right;word-break:break-all;max-width:280px}
+.dr-val.muted{color:var(--text-3);font-weight:400}
+
+/* Status timeline in drawer */
+.timeline{padding:18px 20px}
+.tl-title{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px}
+.tl-item{display:flex;gap:12px;padding-bottom:16px;position:relative}
+.tl-item:last-child{padding-bottom:0}
+.tl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px;z-index:1;position:relative}
+.tl-line{position:absolute;left:4px;top:13px;bottom:0;width:1.5px;background:var(--border)}
+.tl-item:last-child .tl-line{display:none}
+.tl-content{}
+.tl-event{font-size:12px;font-weight:500;color:var(--text-1)}
+.tl-meta{font-size:11px;color:var(--text-3);margin-top:2px;font-family:'JetBrains Mono'}
+
+.drawer-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
+.dfbtn{flex:1;height:34px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer}
+.dfbtn.sec{border:1px solid var(--border);background:var(--surface);color:var(--text-2)}
+.dfbtn.danger{border:1px solid #FCA5A5;background:var(--red-bg);color:var(--red)}
+
+/* ── Confirm dialog ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;display:flex;align-items:center;justify-content:center}
+.confirm-box{background:var(--surface);border-radius:12px;width:360px;box-shadow:0 16px 48px rgba(0,0,0,.18);overflow:hidden}
+.confirm-body{padding:22px 22px 16px;display:flex;gap:14px}
+.confirm-icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--amber-bg)}
+.confirm-icon svg{width:18px;height:18px;stroke:var(--amber)}
+.confirm-title{font-size:15px;font-weight:600;color:var(--text-1);margin-bottom:6px}
+.confirm-msg{font-size:13px;color:var(--text-2);line-height:1.55}
+.confirm-detail{margin-top:10px;padding:10px 12px;background:var(--surface-2);border-radius:7px;font-size:12px;color:var(--text-2);border:1px solid var(--border)}
+.confirm-detail strong{color:var(--text-1)}
+.confirm-foot{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:9px}
+.cfbtn{height:32px;padding:0 18px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer}
+.cfbtn.cancel{border:1px solid var(--border);background:var(--surface);color:var(--text-2)}
+.cfbtn.confirm-danger{border:none;background:var(--red);color:#fff}
+.cfbtn.confirm-danger:hover{background:#991B1B}
+
+/* Block confirm — task not done */
+.block-box{background:var(--surface);border-radius:12px;width:380px;box-shadow:0 16px 48px rgba(0,0,0,.18);overflow:hidden}
+.block-body{padding:22px;display:flex;gap:14px}
+.block-icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--red-bg)}
+.block-icon svg{width:18px;height:18px;stroke:var(--red)}
+.block-title{font-size:15px;font-weight:600;color:var(--text-1);margin-bottom:6px}
+.block-msg{font-size:13px;color:var(--text-2);line-height:1.55}
+.block-task-ref{margin-top:10px;padding:8px 12px;background:var(--red-bg);border-radius:7px;font-size:12px;font-family:'JetBrains Mono';color:var(--red);border:1px solid #FCA5A5}
+.block-foot{padding:12px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end}
+.cfbtn.ok{border:none;background:var(--blue);color:#fff;height:32px;padding:0 18px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer}
+
+/* ── Toast ── */
+.toast{position:fixed;top:20px;right:20px;z-index:999;background:#111827;color:#F9FAFB;padding:10px 16px;border-radius:8px;font-size:13px;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap}
+.toast.show{opacity:1}
+.toast-icon{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.toast.ok .toast-icon{background:var(--green)}
+.toast.err .toast-icon{background:var(--red)}
+.toast.info .toast-icon{background:var(--blue)}
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="slogo">
+    <div class="slogo-mark">M</div>
+    <div>
+      <div class="slogo-name">MES 智造平台</div>
+      <div class="slogo-ver">智能制程 · AGV配送</div>
+    </div>
+  </div>
+  <nav class="snav">
+    <div class="sgroup">生产过程管理</div>
+    <div class="sitem">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      生产总览
+    </div>
+    <div class="sgroup">AGV配送</div>
+    <div class="sitem">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M12 12v3"/></svg>
+      AGV料车管理
+    </div>
+    <div class="sitem">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
+      AGV库位管理
+    </div>
+    <div class="sitem">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+      AGV运输管理
+      <span class="sbadge">8</span>
+    </div>
+    <div class="sitem active">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+      料车订单绑定记录
+    </div>
+    <div class="sgroup">仓储管理</div>
+    <div class="sitem">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0v10l-8 4-8-4V7m16 0L12 11M4 7l8 4"/></svg>
+      出库及库存管理
+    </div>
+    <div class="sitem">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg>
+      产线叫料管理
+    </div>
+  </nav>
+  <div class="sfoot">
+    <div class="suser">
+      <div class="savatar">孟</div>
+      <div>
+        <div class="suser-name">孟琼</div>
+        <div class="suser-role">MES管理员</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<div class="main">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="breadcrumb">
+      智能制程
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      MES
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      AGV配送
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      <span>AGV料车订单绑定记录</span>
+    </div>
+    <div class="topbar-r">
+      <button class="tbtn" onclick="doExport()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        导出
+      </button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:var(--blue-bg)">
+          <svg fill="none" stroke="var(--blue)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-val" style="color:var(--blue)">156</div>
+          <div class="stat-label">绑定记录总数</div>
+          <div class="stat-delta up">↑ 12 今日新增</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:var(--green-bg)">
+          <svg fill="none" stroke="var(--green)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-val" style="color:var(--green)">38</div>
+          <div class="stat-label">已绑定</div>
+          <div class="stat-delta" style="color:var(--text-3)">当前有效绑定</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:var(--gray-bg)">
+          <svg fill="none" stroke="var(--text-3)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/><line x1="4" y1="4" x2="20" y2="20"/></svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-val" style="color:var(--text-2)">118</div>
+          <div class="stat-label">已解绑</div>
+          <div class="stat-delta" style="color:var(--text-3)">历史记录</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:var(--amber-bg)">
+          <svg fill="none" stroke="var(--amber)" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-val" style="color:var(--amber)">24</div>
+          <div class="stat-label">关联料车数</div>
+          <div class="stat-delta" style="color:var(--text-3)">当前有绑定记录</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="filter-card">
+      <div class="filter-row">
+        <span class="filter-label">快捷搜索</span>
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input class="finput" placeholder="绑定记录编号 / 工单号 / 订单号 / 产品ID" type="text">
+        </div>
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+          <input class="finput" style="width:150px" placeholder="料车编号" type="text">
+        </div>
+        <div class="filter-r">
+          <button class="tbtn">重置</button>
+          <button class="tbtn primary">查询</button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">绑定状态</span>
+        <div class="chip-row">
+          <div class="chip on" onclick="filterChip(this,'all')">
+            <span class="dot" style="background:var(--blue)"></span>全部（156）
+          </div>
+          <div class="chip" onclick="filterChip(this,'bound')">
+            <span class="dot" style="background:var(--green)"></span>已绑定（38）
+          </div>
+          <div class="chip" onclick="filterChip(this,'unbound')">
+            <span class="dot" style="background:var(--text-3)"></span>已解绑（118）
+          </div>
+        </div>
+        <span class="filter-label" style="margin-left:16px">绑定时间</span>
+        <select class="fselect">
+          <option>全部时间</option>
+          <option>今日</option>
+          <option>近7天</option>
+          <option>近30天</option>
+          <option>自定义</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <div class="table-head">
+        <div class="table-title">绑定记录列表</div>
+        <span class="table-total">共 156 条</span>
+        <div class="table-acts">
+          <span class="sel-count">已选 <span id="selCnt">0</span> 条</span>
+          <button class="tbtn" onclick="batchUnbind()">批量解绑</button>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width:38px"><input type="checkbox" id="checkAll" onchange="toggleAll(this)"></th>
+            <th>绑定记录编号</th>
+            <th>料车编号</th>
+            <th>绑定状态</th>
+            <th class="sort">生产工单 ↕</th>
+            <th>订单编号</th>
+            <th>产品ID</th>
+            <th class="sort">绑定人 / 时间 ↕</th>
+            <th>解绑人 / 时间</th>
+            <th style="width:100px">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- Row 1: 已绑定，有关联未完成运输任务 → 解绑受阻 -->
+          <tr class="row-bound">
+            <td><input type="checkbox" class="row-check" onchange="updateSelCnt()"></td>
+            <td><span class="rec-no">BC20260626000001</span></td>
+            <td><span class="car-no">LC-002</span></td>
+            <td><span class="bind-badge bb-bound"><span class="dot"></span>已绑定</span></td>
+            <td class="mono">WO-20260625-001</td>
+            <td class="mono">SO-20260620-088</td>
+            <td class="mono">PROD-LM400-2024</td>
+            <td>
+              <div class="person-time">
+                <span class="pt-person">Warm.Meng</span>
+                <span class="pt-time">2026-06-26 08:22:14</span>
+              </div>
+            </td>
+            <td><span class="pt-empty">—</span></td>
+            <td>
+              <div class="row-btns">
+                <button class="rbtn" onclick="showDetail('BC20260626000001')">详情</button>
+                <button class="rbtn danger" onclick="tryUnbind('BC20260626000001','LC-002',true)">解绑</button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 2: 已绑定，可解绑 -->
+          <tr class="row-bound">
+            <td><input type="checkbox" class="row-check" onchange="updateSelCnt()"></td>
+            <td><span class="rec-no">BC20260626000002</span></td>
+            <td><span class="car-no">LC-005</span></td>
+            <td><span class="bind-badge bb-bound"><span class="dot"></span>已绑定</span></td>
+            <td class="mono">WO-20260625-002</td>
+            <td class="mono">SO-20260621-012</td>
+            <td class="mono">PROD-LM800-2024</td>
+            <td>
+              <div class="person-time">
+                <span class="pt-person">Mango.Liu</span>
+                <span class="pt-time">2026-06-26 09:05:33</span>
+              </div>
+            </td>
+            <td><span class="pt-empty">—</span></td>
+            <td>
+              <div class="row-btns">
+                <button class="rbtn" onclick="showDetail('BC20260626000002')">详情</button>
+                <button class="rbtn danger" onclick="tryUnbind('BC20260626000002','LC-005',false)">解绑</button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 3: 已绑定，可解绑 -->
+          <tr class="row-bound">
+            <td><input type="checkbox" class="row-check" onchange="updateSelCnt()"></td>
+            <td><span class="rec-no">BC20260626000003</span></td>
+            <td><span class="car-no">LC-008</span></td>
+            <td><span class="bind-badge bb-bound"><span class="dot"></span>已绑定</span></td>
+            <td class="mono">WO-20260625-003</td>
+            <td class="mono">SO-20260622-055</td>
+            <td class="mono">PROD-LM200-2024</td>
+            <td>
+              <div class="person-time">
+                <span class="pt-person">Warm.Meng</span>
+                <span class="pt-time">2026-06-26 10:14:08</span>
+              </div>
+            </td>
+            <td><span class="pt-empty">—</span></td>
+            <td>
+              <div class="row-btns">
+                <button class="rbtn" onclick="showDetail('BC20260626000003')">详情</button>
+                <button class="rbtn danger" onclick="tryUnbind('BC20260626000003','LC-008',false)">解绑</button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 4: 已解绑 -->
+          <tr class="row-unbound">
+            <td><input type="checkbox" class="row-check" onchange="updateSelCnt()"></td>
+            <td><span class="rec-no">BC20260625000018</span></td>
+            <td><span class="car-no">LC-001</span></td>
+            <td><span class="bind-badge bb-unbound"><span class="dot"></span>已解绑</span></td>
+            <td class="mono">WO-20260624-009</td>
+            <td class="mono">SO-20260619-031</td>
+            <td class="mono">PROD-LM400-2024</td>
+            <td>
+              <div class="person-time">
+                <span class="pt-person">Warm.Meng</span>
+                <span class="pt-time">2026-06-25 07:50:22</span>
+              </div>
+            </td>
+            <td>
+              <div class="person-time">
+                <span class="pt-person">Mango.Liu</span>
+                <span class="pt-time">2026-06-25 14:30:05</span>
+              </div>
+            </td>
+            <td>
+              <div class="row-btns">
+                <button class="rbtn" onclick="showDetail('BC20260625000018')">详情</button>
+                <button class="rbtn danger" disabled title="已解绑">解绑</button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 5: 已解绑 -->
+          <tr class="row-unbound">
+            <td><input type="checkbox" class="row-check" onchange="updateSelCnt()"></td>
+            <td><span class="rec-no">BC20260625000017</span></td>
+            <td><span class="car-no">LC-003</span></td>
+            <td><span class="bind-badge bb-unbound"><span class="dot"></span>已解绑</span></td>
+            <td class="mono">WO-20260624-008</td>
+            <td class="mono">SO-20260619-028</td>
+            <td class="mono">PROD-LM800-2024</td>
+            <td>
+              <div class="person-time">
+                <span class="pt-person">Mango.Liu</span>
+                <span class="pt-time">2026-06-25 08:12:00</span>
+              </div>
+            </td>
+            <td>
+              <div class="person-time">
+                <span class="pt-person">Warm.Meng</span>
+                <span class="pt-time">2026-06-25 16:44:18</span>
+              </div>
+            </td>
+            <td>
+              <div class="row-btns">
+                <button class="rbtn" onclick="showDetail('BC20260625000017')">详情</button>
+                <button class="rbtn danger" disabled title="已解绑">解绑</button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 6: 已绑定，有关联未完成运输任务 -->
+          <tr class="row-bound">
+            <td><input type="checkbox" class="row-check" onchange="updateSelCnt()"></td>
+            <td><span class="rec-no">BC20260626000004</span></td>
+            <td><span class="car-no">LC-011</span></td>
+            <td><span class="bind-badge bb-bound"><span class="dot"></span>已绑定</span></td>
+            <td class="mono">WO-20260626-001</td>
+            <td class="mono">SO-20260623-072</td>
+            <td class="mono">PROD-LM400-2024</td>
+            <td>
+              <div class="person-time">
+                <span class="pt-person">Warm.Meng</span>
+                <span class="pt-time">2026-06-26 11:30:00</span>
+              </div>
+            </td>
+            <td><span class="pt-empty">—</span></td>
+            <td>
+              <div class="row-btns">
+                <button class="rbtn" onclick="showDetail('BC20260626000004')">详情</button>
+                <button class="rbtn danger" onclick="tryUnbind('BC20260626000004','LC-011',true)">解绑</button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 7: 已解绑 -->
+          <tr class="row-unbound">
+            <td><input type="checkbox" class="row-check" onchange="updateSelCnt()"></td>
+            <td><span class="rec-no">BC20260625000016</span></td>
+            <td><span class="car-no">LC-006</span></td>
+            <td><span class="bind-badge bb-unbound"><span class="dot"></span>已解绑</span></td>
+            <td class="mono">WO-20260624-007</td>
+            <td class="mono">SO-20260618-019</td>
+            <td class="mono">PROD-LM200-2024</td>
+            <td>
+              <div class="person-time">
+                <span class="pt-person">Mango.Liu</span>
+                <span class="pt-time">2026-06-25 06:00:00</span>
+              </div>
+            </td>
+            <td>
+              <div class="person-time">
+                <span class="pt-person">Mango.Liu</span>
+                <span class="pt-time">2026-06-25 18:10:44</span>
+              </div>
+            </td>
+            <td>
+              <div class="row-btns">
+                <button class="rbtn" onclick="showDetail('BC20260625000016')">详情</button>
+                <button class="rbtn danger" disabled title="已解绑">解绑</button>
+              </div>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+      <div class="pager">
+        <span class="pager-info">共 156 条 · 每页</span>
+        <select class="pager-size" style="width:56px">
+          <option>10</option>
+          <option>20</option>
+          <option>50</option>
+        </select>
+        <span style="font-size:12px;color:var(--text-3)">条</span>
+        <button class="pbtn">«</button>
+        <button class="pbtn on">1</button>
+        <button class="pbtn">2</button>
+        <button class="pbtn">3</button>
+        <button class="pbtn" style="color:var(--text-3)">…</button>
+        <button class="pbtn">16</button>
+        <button class="pbtn">»</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Detail Drawer ── -->
+<div id="drawerWrap" style="display:none">
+  <div class="drawer-overlay" onclick="closeDrawer()"></div>
+  <div class="drawer">
+    <div class="drawer-header">
+      <div>
+        <div class="drawer-title">绑定记录详情</div>
+        <div class="drawer-subtitle" id="drawerRecNo"></div>
+      </div>
+      <div class="drawer-close" onclick="closeDrawer()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </div>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+    <div class="drawer-foot" id="drawerFoot"></div>
+  </div>
+</div>
+
+<!-- ── Unbind Confirm ── -->
+<div class="modal-overlay" id="confirmOverlay" style="display:none" onclick="if(event.target===this)closeConfirm()">
+  <div class="confirm-box">
+    <div class="confirm-body">
+      <div class="confirm-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+      </div>
+      <div>
+        <div class="confirm-title">确认解绑</div>
+        <div class="confirm-msg">解绑后，绑定记录状态将更新为<strong>已解绑</strong>，并记录解绑账号和时间。该操作不可撤销。</div>
+        <div class="confirm-detail" id="confirmDetail"></div>
+      </div>
+    </div>
+    <div class="confirm-foot">
+      <button class="cfbtn cancel" onclick="closeConfirm()">取消</button>
+      <button class="cfbtn confirm-danger" onclick="doUnbind()">确认解绑</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Block Dialog (task not done) ── -->
+<div class="modal-overlay" id="blockOverlay" style="display:none" onclick="if(event.target===this)document.getElementById('blockOverlay').style.display='none'">
+  <div class="block-box">
+    <div class="block-body">
+      <div class="block-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      </div>
+      <div>
+        <div class="block-title">无法解绑</div>
+        <div class="block-msg">当前料车存在状态不为已完成的 AGV 运输任务，不支持解绑。<br>请先完成或取消关联运输任务后再操作。</div>
+        <div class="block-task-ref" id="blockTaskRef"></div>
+      </div>
+    </div>
+    <div class="block-foot">
+      <button class="cfbtn ok" onclick="document.getElementById('blockOverlay').style.display='none'">知道了</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <div class="toast-icon" id="toastIcon">
+    <svg width="10" height="10" fill="none" stroke="#fff" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+  </div>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+/* ── data ── */
+const records = {
+  'BC20260626000001':{recNo:'BC20260626000001',car:'LC-002',status:'bound',wo:'WO-20260625-001',order:'SO-20260620-088',product:'PROD-LM400-2024',bindUser:'Warm.Meng',bindTime:'2026-06-26 08:22:14',unbindUser:'—',unbindTime:'—',hasActiveTask:true,activeTask:'TT202606250001 (执行中)'},
+  'BC20260626000002':{recNo:'BC20260626000002',car:'LC-005',status:'bound',wo:'WO-20260625-002',order:'SO-20260621-012',product:'PROD-LM800-2024',bindUser:'Mango.Liu',bindTime:'2026-06-26 09:05:33',unbindUser:'—',unbindTime:'—',hasActiveTask:false,activeTask:''},
+  'BC20260626000003':{recNo:'BC20260626000003',car:'LC-008',status:'bound',wo:'WO-20260625-003',order:'SO-20260622-055',product:'PROD-LM200-2024',bindUser:'Warm.Meng',bindTime:'2026-06-26 10:14:08',unbindUser:'—',unbindTime:'—',hasActiveTask:false,activeTask:''},
+  'BC20260625000018':{recNo:'BC20260625000018',car:'LC-001',status:'unbound',wo:'WO-20260624-009',order:'SO-20260619-031',product:'PROD-LM400-2024',bindUser:'Warm.Meng',bindTime:'2026-06-25 07:50:22',unbindUser:'Mango.Liu',unbindTime:'2026-06-25 14:30:05',hasActiveTask:false,activeTask:''},
+  'BC20260625000017':{recNo:'BC20260625000017',car:'LC-003',status:'unbound',wo:'WO-20260624-008',order:'SO-20260619-028',product:'PROD-LM800-2024',bindUser:'Mango.Liu',bindTime:'2026-06-25 08:12:00',unbindUser:'Warm.Meng',unbindTime:'2026-06-25 16:44:18',hasActiveTask:false,activeTask:''},
+  'BC20260626000004':{recNo:'BC20260626000004',car:'LC-011',status:'bound',wo:'WO-20260626-001',order:'SO-20260623-072',product:'PROD-LM400-2024',bindUser:'Warm.Meng',bindTime:'2026-06-26 11:30:00',unbindUser:'—',unbindTime:'—',hasActiveTask:true,activeTask:'TT202606260008 (已调度)'},
+  'BC20260625000016':{recNo:'BC20260625000016',car:'LC-006',status:'unbound',wo:'WO-20260624-007',order:'SO-20260618-019',product:'PROD-LM200-2024',bindUser:'Mango.Liu',bindTime:'2026-06-25 06:00:00',unbindUser:'Mango.Liu',unbindTime:'2026-06-25 18:10:44',hasActiveTask:false,activeTask:''},
+};
+
+let currentRec = null;
+
+/* ── chip filter ── */
+function filterChip(el, val) {
+  document.querySelectorAll('.chip').forEach(c => {
+    c.classList.remove('on','on-green');
+  });
+  if (val === 'bound') el.classList.add('on-green');
+  else el.classList.add('on');
+}
+
+/* ── checkbox ── */
+function toggleAll(el) {
+  document.querySelectorAll('.row-check').forEach(c => c.checked = el.checked);
+  updateSelCnt();
+}
+function updateSelCnt() {
+  document.getElementById('selCnt').textContent = document.querySelectorAll('.row-check:checked').length;
+}
+
+/* ── batch unbind ── */
+function batchUnbind() {
+  const n = document.querySelectorAll('.row-check:checked').length;
+  if (!n) { showToast('请先勾选要解绑的记录','err'); return; }
+  showToast('批量解绑：将逐条校验关联运输任务状态','info');
+}
+
+/* ── export ── */
+function doExport() { showToast('正在导出绑定记录…','info'); }
+
+/* ── unbind flow ── */
+function tryUnbind(recNo, car, hasActiveTask) {
+  currentRec = recNo;
+  if (hasActiveTask) {
+    const d = records[recNo];
+    document.getElementById('blockTaskRef').textContent = '关联运输任务：' + d.activeTask;
+    document.getElementById('blockOverlay').style.display = 'flex';
+  } else {
+    const d = records[recNo];
+    document.getElementById('confirmDetail').innerHTML =
+      `<strong>记录编号：</strong>${recNo}<br>` +
+      `<strong>料车编号：</strong>${car}<br>` +
+      `<strong>生产工单：</strong>${d.wo}<br>` +
+      `<strong>订单编号：</strong>${d.order}`;
+    document.getElementById('confirmOverlay').style.display = 'flex';
+  }
+}
+function closeConfirm() { document.getElementById('confirmOverlay').style.display = 'none'; }
+function doUnbind() {
+  closeConfirm();
+  if (records[currentRec]) {
+    records[currentRec].status = 'unbound';
+    records[currentRec].unbindUser = 'Mango.Liu';
+    records[currentRec].unbindTime = new Date().toLocaleString('zh-CN',{hour12:false}).replace(/\//g,'-');
+  }
+  showToast('解绑成功，记录已更新', 'ok');
+}
+
+/* ── detail drawer ── */
+function showDetail(recNo) {
+  const d = records[recNo];
+  if (!d) return;
+  document.getElementById('drawerRecNo').textContent = recNo;
+  const isBound = d.status === 'bound';
+
+  document.getElementById('drawerBody').innerHTML = `
+    <div class="dsec">
+      <div class="dsec-title">绑定信息</div>
+      <div class="drow"><span class="dr-label">绑定记录编号</span><span class="dr-val">${d.recNo}</span></div>
+      <div class="drow"><span class="dr-label">料车编号</span><span class="dr-val">${d.car}</span></div>
+      <div class="drow"><span class="dr-label">绑定状态</span><span class="dr-val">
+        <span class="bind-badge ${isBound?'bb-bound':'bb-unbound'}"><span class="dot"></span>${isBound?'已绑定':'已解绑'}</span>
+      </span></div>
+    </div>
+    <div class="dsec">
+      <div class="dsec-title">关联订单信息</div>
+      <div class="drow"><span class="dr-label">生产工单</span><span class="dr-val">${d.wo}</span></div>
+      <div class="drow"><span class="dr-label">订单编号</span><span class="dr-val">${d.order}</span></div>
+      <div class="drow"><span class="dr-label">产品ID</span><span class="dr-val">${d.product}</span></div>
+    </div>
+    <div class="timeline">
+      <div class="tl-title">操作记录</div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--green)"></div>
+        <div class="tl-line"></div>
+        <div class="tl-content">
+          <div class="tl-event">料车绑定订单</div>
+          <div class="tl-meta">${d.bindUser} · ${d.bindTime}</div>
+        </div>
+      </div>
+      ${!isBound ? `
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--text-3)"></div>
+        <div class="tl-content">
+          <div class="tl-event">料车解绑订单</div>
+          <div class="tl-meta">${d.unbindUser} · ${d.unbindTime}</div>
+        </div>
+      </div>` : `
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--border)"></div>
+        <div class="tl-content">
+          <div class="tl-event" style="color:var(--text-3)">待解绑</div>
+          <div class="tl-meta">—</div>
+        </div>
+      </div>`}
+    </div>
+  `;
+
+  const foot = document.getElementById('drawerFoot');
+  if (isBound) {
+    foot.innerHTML = `
+      <button class="dfbtn sec" onclick="closeDrawer()">关闭</button>
+      <button class="dfbtn danger" onclick="closeDrawer();tryUnbind('${d.recNo}','${d.car}',${d.hasActiveTask})">解绑</button>
+    `;
+  } else {
+    foot.innerHTML = `<button class="dfbtn sec" onclick="closeDrawer()">关闭</button>`;
+  }
+
+  document.getElementById('drawerWrap').style.display = 'block';
+}
+function closeDrawer() { document.getElementById('drawerWrap').style.display = 'none'; }
+
+/* ── toast ── */
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
